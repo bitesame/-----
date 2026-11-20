@@ -1387,7 +1387,8 @@ const GROUPS = [['apostle','사도'], ['battle','전투'], ['aside','어사이�
 const GLABEL = Object.fromEntries(GROUPS);
 const encPath = p => p.split('/').map(encodeURIComponent).join('/');
 const AB = (window.ASSET_BASE || '').replace(/\/?$/, (window.ASSET_BASE || '') ? '/' : '');   // 파일 서버 주소
-const isLocalServer = !AB;
+// 이 PC 의 서버(로컬 주소나 ngrok)로 열었을 때만 '게임 업데이트 가져오기' 등 서버 기능 사용
+const isLocalServer = !AB && /^(127\.0\.0\.1|localhost)$|ngrok/.test(location.hostname);
 const itemBase = it => AB + (it.group === 'background' ? 'assets/bg/' + encPath(it.cat) + '/' : 'assets/spine/' + encPath(it.cat) + '/' + encodeURIComponent(it.name) + '/');
 const libSet = t => { $('#libMsg').textContent = t || ''; };
 try { LIB.seen = +localStorage.getItem('libSeen') || 0; } catch (e) {}
