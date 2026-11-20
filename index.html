@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spine 스튜디오</title>
+<style>
+:root{--ink:#1c3a2b;--mute:#6b8577;--line:#cfe3d6;--mint:#e4f4ea;--leaf:#4fae70;--leaf-d:#388a56;--bg:#f2f9f4;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 Pretendard,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 10px var(--aw,340px);gap:0;padding:12px;height:100vh}
+.app.collapsed{grid-template-columns:minmax(0,1fr)}
+.app.collapsed aside,.app.collapsed #split{display:none}
+main{min-width:0;min-height:0;display:flex;flex-direction:column}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+#split{cursor:col-resize;position:relative;touch-action:none}
+#split::after{content:"";position:absolute;left:4px;top:42%;bottom:42%;width:3px;border-radius:3px;background:var(--line)}
+#split:hover::after,#split.drag::after{background:var(--leaf)}
+h1{margin:0;font-size:22px}
+#sub{margin:2px 0 8px;color:var(--mute)}
+#stage{position:relative;flex:1 1 auto;min-height:280px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;touch-action:none}
+#stage.checker{background:conic-gradient(#e8f3ec 25%,#fff 0 50%,#e8f3ec 0 75%,#fff 0) 0 0/24px 24px}
+#stage.white{background:#fff}#stage.black{background:#111}#stage.green{background:#00b140}
+canvas{display:block;width:min(100%,68vh);height:auto;aspect-ratio:1;margin:auto;cursor:grab}
+canvas.pick{cursor:crosshair}
+#view{position:absolute;inset:0;overflow:hidden}
+#view canvas{position:absolute;left:0;top:0;width:100%;height:100%;aspect-ratio:auto;margin:0}
+#bgc,#fgc{pointer-events:none}
+#selbox{position:absolute;display:none;border:1.5px dashed #2f7dff;pointer-events:none}
+#selbox.locked{border-color:#8a9a92}#selbox.locked .h{display:none}
+#selbox .h{position:absolute;right:-8px;bottom:-8px;width:15px;height:15px;background:#fff;border:2px solid #2f7dff;border-radius:4px;pointer-events:auto;cursor:nwse-resize}
+#stage.exporting #selbox{display:none!important}
+#layerList{display:grid;gap:6px}
+.lyr{display:grid;grid-template-columns:44px 1fr;gap:6px 8px;padding:8px;border:1px solid var(--line);border-radius:12px;cursor:pointer;background:#fff}
+.lyr.sel{background:var(--mint);border-color:var(--leaf)}
+.lyr.off .th,.lyr.off b{opacity:.45}
+.lyr .th{width:44px;height:44px;border-radius:8px;object-fit:contain;background:var(--bg);border:1px solid var(--line);display:grid;place-content:center;font-weight:700;color:var(--leaf-d)}
+.lyr small{color:var(--mute);display:block}
+.lyr .lb{grid-column:1/-1;display:flex;gap:4px;justify-content:flex-end}
+.lyr .lb button{padding:2px 8px;min-width:34px}
+.edbox{display:grid;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+#frame{position:absolute;border:2px solid var(--leaf);box-shadow:0 0 0 200vmax rgba(28,58,43,.32);pointer-events:none}
+#frame span{position:absolute;left:6px;top:6px;padding:0 8px;border-radius:8px;background:rgba(255,255,255,.88);color:var(--ink);font-size:12px}
+#stage.exporting #frame{display:none}
+#stage.exporting canvas{opacity:.35}
+button[aria-pressed=true]{background:var(--mint);border-color:var(--leaf);font-weight:700}
+button:disabled{opacity:.45;cursor:default}
+#drop{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:10px;background:rgba(242,249,244,.92)}
+#drop.hide{display:none}
+#stage.over{outline:3px dashed var(--leaf);outline-offset:-8px}
+.bar{flex:none;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--card);display:grid;gap:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>*{flex:0 0 auto}
+.grow{flex:1 1 auto!important;min-width:120px}
+button,select,input[type=number],input[type=search],input[type=text]{font:inherit;color:inherit;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px}
+button{cursor:pointer}
+button:hover{background:var(--mint)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--leaf);outline-offset:1px}
+button.primary{background:var(--leaf);border-color:var(--leaf-d);color:#fff;font-weight:600}
+button.primary:hover{background:var(--leaf-d)}
+button.round{width:40px;height:40px;border-radius:50%;padding:0}
+input[type=range]{accent-color:var(--leaf)}
+label.f{display:grid;gap:2px;color:var(--mute);font-size:12px}
+label.f select,label.f input{color:var(--ink);font-size:14px}
+aside{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:12px;display:flex;flex-direction:column;gap:12px;height:100%;min-height:0;overflow:hidden}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.libtabs{display:flex;flex-wrap:wrap;gap:6px}
+.libtabs button{padding:5px 10px}
+#libList{display:grid;gap:4px;overflow:auto;flex:1 1 auto;min-height:120px}
+.li{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:#fff;text-align:left}
+.li:hover{background:var(--mint)}.li.cur{background:var(--mint);border-color:var(--leaf)}
+.li img{width:40px;height:40px;object-fit:contain;border-radius:6px;background:var(--bg);flex:none}
+.li small{color:var(--mute);display:block}
+.li .nw{background:#ff7a59;color:#fff;border-radius:8px;padding:0 6px;font-size:11px;margin-left:6px}
+.li.bad{opacity:.5}
+#libList .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px}
+#libList .tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:11px;min-width:0}
+#libList .tile.cur{border-color:var(--leaf);background:var(--mint)}
+img.th-img.miss{visibility:hidden}
+img.th-img{background:var(--bg)}
+#libList .tile img,#libList .tile .nothumb{width:56px;height:56px;object-fit:contain;border-radius:8px;background:var(--bg)}
+#libList .tile .tn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+#libList .tile .ts{color:#e0a100;font-size:9px;line-height:1}
+#libList .tile .on{position:absolute;top:2px;right:2px;margin:0}
+#libList .sec{font-weight:700;font-size:13px;margin:8px 0 2px;color:var(--leaf-d)}
+#libList .card{position:sticky;top:0;z-index:2;flex-direction:column;align-items:stretch;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#libView{align-items:center}
+.li .nothumb{width:40px;height:40px;border-radius:6px;background:var(--bg);flex:none;display:block}
+.li .add,.li .rm{flex:none;width:34px;height:34px;padding:0;border-radius:50%;font-weight:700}
+.li .rm{color:#c0392b;border-color:#f0c4bd}
+.li .on{background:var(--leaf);color:#fff;border-radius:8px;padding:0 6px;font-size:11px;margin-left:6px}
+#onScreen{border:1px solid var(--leaf);background:var(--mint);border-radius:12px;padding:8px;display:grid;gap:6px}
+#onScreen .row{justify-content:space-between}
+#onScreen button.mini{padding:2px 8px;font-size:12px}
+#libList{content-visibility:auto}
+.skins{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.skins button{padding:3px 8px;font-size:12px;border-radius:8px}
+#bgPrev{position:absolute;inset:0;display:none;place-content:center;background:rgba(20,40,30,.8);z-index:5}
+#bgPrev.on{display:grid}
+#bgPrev img{max-width:90%;max-height:78vh;margin:auto;display:block;background:conic-gradient(#e8f3ec 25%,#fff 0 50%,#e8f3ec 0 75%,#fff 0) 0 0/24px 24px}
+#bgPrev .row{justify-content:center;margin-top:8px}
+.tabs button{padding:7px 4px}
+.tabs button[aria-selected=true]{background:var(--mint);border-color:var(--leaf);font-weight:700}
+.pane{display:none;gap:10px;overflow:auto;flex-direction:column;flex:1 1 auto;min-height:0}
+.pane.on{display:flex}
+#slots{display:grid;gap:6px;overflow:auto;max-height:46vh}
+.slot{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:10px}
+.slot.off{opacity:.5;background:var(--bg)}
+.slot .pth{flex:none;width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:conic-gradient(#eef6f1 25%,#fff 0 50%,#eef6f1 0 75%,#fff 0) 0 0/10px 10px}
+.slot > div{min-width:0;flex:1;text-align:left}.slot b,.slot small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot small{color:var(--mute);display:block}
+#status{min-height:20px;color:var(--mute);font-size:12px}
+.hint{color:var(--mute);font-size:12px;margin:0}
+@media(max-width:900px){.app{grid-template-columns:1fr;height:auto}#split{display:none}aside{height:auto;max-height:none}#stage{flex:none;height:62vh}}
+</style>
+</head>
+<body>
+<div class="app">
+<main>
+  <div class="head">
+    <div><h1 id="title">Spine 스튜디오</h1>
+    <p id="sub">.skel(또는 .json) · .atlas · .png 파일을 불러오면 바로 미리보기가 시작됩니다</p></div>
+    <button id="togglePanel" title="오른쪽 패널 접기/펴기">패널 접기 ▸</button>
+  </div>
+  <div id="stage" class="checker">
+    <div id="view"><canvas id="bgc"></canvas><canvas id="cv" width="1000" height="1000"></canvas><canvas id="fgc"></canvas><div id="frame"><span id="frameLabel">800 x 800</span></div><div id="selbox"><i class="h"></i></div></div>
+    <div id="bgPrev"><div><img id="bgPrevImg" alt=""><div class="row"><button id="bgAdd" class="primary">현재 모델 뒤에 레이어로 추가</button><a id="bgDl" class="hint" style="color:#fff">다운로드</a><button id="bgClose">닫기</button></div></div></div>
+    <div id="drop">
+      <strong>Spine 파일을 여기로 끌어다 놓으세요</strong>
+      <span class="hint">skel/json + atlas + 이미지(png)를 한 번에 선택</span>
+      <div><button class="primary" id="pick">파일 선택</button></div>
+    </div>
+  </div>
+  <div class="bar">
+    <div class="row">
+      <span id="t0">00:00</span>
+      <input class="grow" type="range" id="seek" min="0" max="1000" value="0" aria-label="재생 위치">
+      <span id="t1">00:00</span>
+    </div>
+    <div class="row">
+      <button class="round" id="prev" title="이전 동작">⏮</button>
+      <button class="round primary" id="play" title="재생/일시정지">⏸</button>
+      <button class="round" id="next" title="다음 동작">⏭</button>
+      <label class="f grow">동작<select id="anim"></select></label>
+      <label class="f grow">외부 스킨<select id="skinA"></select></label>
+      <label class="f grow">내부 스킨<select id="skinB"></select></label>
+    </div>
+  </div>
+</main>
+<div id="split" title="드래그: 패널 너비 조절 · 더블클릭: 초기화"></div>
+
+<aside>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="lib">라이브러리</button>
+    <button role="tab" aria-selected="false" data-tab="canvas">캔버스</button>
+    <button role="tab" aria-selected="false" data-tab="layer">레이어</button>
+    <button role="tab" aria-selected="false" data-tab="parts">파츠</button>
+    <button role="tab" aria-selected="false" data-tab="export">내보내기</button>
+  </div>
+
+  <section class="pane on" id="p-lib">
+    <div class="row">
+      <button class="primary grow" id="libSync" title="MuMu 에뮬레이터의 게임 파일에서 바뀐 것만 가져옵니다">게임 업데이트 가져오기</button>
+      <button id="libReload" title="manifest 다시 읽기">새로고침</button>
+    </div>
+    <a href="compose.html" class="hint" style="color:var(--leaf-d);font-weight:600">🧩 배경 파츠 합치기 열기 →</a>
+    <div id="libMsg" class="hint"></div>
+    <div id="libAuto" class="hint"></div>
+    <div id="onScreen" style="display:none"></div>
+    <div class="libtabs" id="libGroups"></div>
+    <select id="libSub" aria-label="세부 분류"></select>
+    <div id="libView" class="libtabs" style="display:none"></div>
+    <input type="search" id="libQ" placeholder="이름 검색 (예: 앨리스, alice, 하이라이트)">
+    <label class="row"><input type="checkbox" id="libNew"> 새로 추가된 것만 <span id="libNewN" class="hint"></span></label>
+    <div id="libCount" class="hint"></div>
+    <div id="libList"></div>
+  </section>
+
+  <section class="pane" id="p-canvas">
+    <label class="row"><input type="checkbox" id="showFrame" checked> 카메라 프레임 표시</label>
+    <label class="f">배경<select id="bg"><option value="checker">투명(체크무늬)</option><option value="white">흰색</option><option value="black">검정</option><option value="green">크로마키 녹색</option></select></label>
+    <strong>카메라 (출력 프레임)</strong>
+    <label class="f">프리셋<select id="preset"><option value="800,800">800 × 800</option><option value="512,512">512 × 512</option><option value="1024,1024">1024 × 1024</option><option value="1280,720">1280 × 720 (가로)</option><option value="1920,1080">1920 × 1080 (가로)</option><option value="1080,1920">1080 × 1920 (세로)</option><option value="custom">직접 입력</option></select></label>
+    <div class="row">
+      <label class="f grow">너비(px)<input type="number" id="camW" value="800" min="16" max="4096"></label>
+      <label class="f grow">높이(px)<input type="number" id="camH" value="800" min="16" max="4096"></label>
+    </div>
+    <label class="f">알파 방식 (가장자리가 하얗게/어둡게 보이면 변경)<select id="pmaMode"><option value="auto">자동 (atlas 설정)</option><option value="on">프리멀티플라이드</option><option value="off">일반(스트레이트)</option></select></label>
+    <label class="f">재생 속도 <span id="spv">1.0x</span><input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"></label>
+    <div class="row">
+      <label class="f grow">캐릭터 크기(%) — ▲▼ 또는 ↑↓ 키<input type="number" id="zoomNum" value="100" min="10" max="600" step="1"></label>
+    </div>
+    <label class="f">크기 슬라이더 <span id="zmv">100%</span><input type="range" id="zoom" min="0.1" max="6" step="0.01" value="1"></label>
+    <div class="row">
+      <label class="f grow">X 위치(px)<input type="number" id="camX" value="0"></label>
+      <label class="f grow">Y 위치(px)<input type="number" id="camY" value="0"></label>
+    </div>
+    <div class="row"><button id="reset">프레임에 맞추기</button><button id="recenter">위치 초기화</button><button id="reload">다른 파일 불러오기</button></div>
+    <p class="hint">초록 테두리가 카메라 프레임이며, 내보내기는 이 안쪽만 이 해상도로 저장됩니다. 캔버스를 드래그하면 위치가, 마우스 휠로 크기가 조절됩니다.</p>
+  </section>
+
+  <section class="pane" id="p-layer">
+    <label class="row"><input type="checkbox" id="layerEdit" checked> <b>레이어 편집 활성화</b></label>
+    <p class="hint">켜면 캔버스에서 선택한 레이어를 드래그해 옮기고, 휠이나 모서리 핸들로 크기를 바꿀 수 있습니다. 잠긴 레이어는 움직이지 않습니다.</p>
+    <button class="primary" id="addImg">＋ 이미지 레이어 추가 (배경 사진)</button>
+    <div id="layerList"></div>
+    <div class="edbox">
+      <strong id="edTitle">레이어 설정</strong>
+      <label class="f">이름<input type="text" id="lyName"></label>
+      <div class="row"><label class="f grow">X(px) →<input type="number" id="lyX"></label><label class="f grow">Y(px) ↓<input type="number" id="lyY"></label></div>
+      <label class="f">크기(%)<input type="number" id="lyS" min="2" max="2000" step="1"></label>
+      <label class="f">불투명도 <span id="lyOv">100%</span><input type="range" id="lyO" min="0" max="100" value="100"></label>
+      <div class="row"><button id="lyCover">프레임 채우기</button><button id="lyContain">프레임에 맞추기</button></div>
+      <div id="spEd" style="display:none;gap:8px">
+        <label class="f">동작<select id="spAnim"></select></label>
+        <label class="f">스킨<select id="spSkin"></select></label>
+        <div class="row"><button id="spFlip" aria-pressed="false">좌우 반전</button><button id="spSync" title="모든 모델의 동작을 처음부터 다시 맞춤">동작 시작 맞추기</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane" id="p-parts">
+    <div class="row"><button id="pickmode" aria-pressed="false">클릭하여 숨기기</button><button id="undo" disabled>↶ 실행 취소</button><button id="redo" disabled>↷ 다시 실행</button></div>
+    <p class="hint">켜면 캔버스에서 부품을 클릭해 숨길 수 있습니다. 드래그는 이동입니다. Ctrl+Z / Ctrl+Y</p>
+    <div class="row"><strong>슬롯</strong><span id="cnt" class="hint"></span></div>
+    <input type="search" id="q" placeholder="슬롯 / 어태치먼트 이름 검색">
+    <div class="row">
+      <button id="f-all">모두</button><button id="f-off">숨김</button>
+      <button id="showall">모두 복원</button><button id="hideall">필터 항목 숨기기</button>
+    </div>
+    <div id="slots"></div>
+  </section>
+
+  <section class="pane" id="p-export">
+    <div class="row">
+      <label class="f grow">FPS<input type="number" id="fps" value="15" min="1" max="60"></label>
+    </div>
+    <label class="f">렌더 품질 (슈퍼샘플링) — 높을수록 부드럽고 느림<select id="ss"><option value="1">1× (빠름)</option><option value="2" selected>2× (권장)</option><option value="4">4× (최고)</option></select></label>
+    <label class="row"><input type="checkbox" id="mip" checked> 텍스처 밉맵 (축소 시 자글거림 감소)</label>
+    <button class="primary" id="ex-gif">현재 동작 GIF 내보내기 (고화질)</button>
+    <div class="row">
+      <label class="f grow">GIF 배율<select id="gifScale"><option value="1">100% (최고)</option><option value="0.75">75%</option><option value="0.5">50%</option></select></label>
+      <label class="f grow">GIF 배경<select id="gifBg"><option value="transparent">투명 (가장자리 계단)</option><option value="#ffffff">흰색 (부드러움)</option><option value="#000000">검정</option><option value="#00b140">크로마키 녹색</option></select></label>
+    </div>
+    <div class="row">
+      <label class="f grow">팔레트<select id="gifPal"><option value="global">공통 (깜빡임 적음)</option><option value="local">프레임별 (색 정확도 최고)</option></select></label>
+      <label class="f grow">디더링<select id="gifDither"><option value="none">없음 (가장 깨끗)</option><option value="bayer">약하게 (고정 패턴)</option><option value="fs">강하게 (노이즈 증가)</option></select></label>
+    </div>
+    <button id="ex-webm">현재 동작 WebM 녹화 (투명 배경 가능)</button>
+    <div class="row">
+      <button id="ex-mp4" class="grow">현재 동작 MP4 내보내기</button>
+      <label class="f grow">MP4 방식<select id="mp4Mode"><option value="fixed">프레임 고정 (권장)</option><option value="realtime">실시간 녹화 (이전 방식)</option></select></label>
+    </div>
+    <div class="row">
+      <label class="f grow">목표 용량 상한(MB) — 0이면 자동<input type="number" id="mp4Size" value="0" min="0" step="0.5"></label>
+    </div>
+    <div class="row">
+      <label class="f grow">MP4 배경<select id="mp4Bg"><option value="#000000">검정</option><option value="#ffffff">흰색</option><option value="#00b140">크로마키 녹색</option></select></label>
+    </div>
+    <p class="hint"><b>프레임 고정:</b> 위의 FPS 값으로 프레임을 하나씩 인코딩해 정확히 고정합니다(더 빠를 수 있음). <b>실시간 녹화:</b> 화면에 재생되는 모습을 그대로 녹화하며 FPS는 컴퓨터 성능에 따라 달라질 수 있습니다. <b>목표 용량:</b> 값을 넣으면 그 용량을 넘지 않는 선에서 가장 높은 화질이 되도록 비트레이트를 맞춰 다시 인코딩합니다(실시간 녹화는 필요하면 최대 3번까지 다시 녹화하므로 시간이 더 걸립니다). MP4는 투명도를 지원하지 않아 선택한 배경색 위에 합성됩니다. 프레임 고정을 못 쓰는 브라우저에서는 자동으로 실시간 녹화로 대체됩니다.</p>
+    <button id="ex-png">현재 화면 PNG 캡처</button>
+    <button id="ex-seq">현재 동작 PNG 시퀀스 (ZIP)</button>
+    <button id="ex-all">모든 동작 PNG 시퀀스 (ZIP)</button>
+    <p class="hint" id="exinfo"></p>
+  </section>
+  <div id="status" role="status"></div>
+</aside>
+</div>
+<input type="file" id="file" multiple hidden>
+<input type="file" id="imgIn" accept="image/*" multiple hidden>
+
+<script src="site-config.js"></script>
+<script src="lib/spine-webgl.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script src="lib/mp4-muxer.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#cv');
+
+const mctx = new spine.ManagedWebGLRenderingContext(cv, {alpha:true, premultipliedAlpha:true, preserveDrawingBuffer:true});
+const gl = mctx.gl;
+const isGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+const isPot = n => (n & (n - 1)) === 0;
+const texList = [];
+const R = new spine.SceneRenderer(cv, mctx);
+const bgc = $('#bgc'), fgc = $('#fgc'), bgx = bgc.getContext('2d'), fgx = fgc.getContext('2d');
+const out = document.createElement('canvas'), octx = out.getContext('2d');   // 내보내기용 합성 캔버스
+const tmp = document.createElement('canvas'), tmpx = tmp.getContext('2d');
+const layers = [{id:'model', type:'model', name:'모델', hidden:false, locked:false}];   // 아래 -> 위 순서
+let sel = 'model', layerEdit = true, layersDirty = true, imgSeq = 0;
+
+let data, skel, state, track, pma = true;
+let playing = true, speed = 1, busy = false, scrubbing = false;
+let zoom = 1, fit = 1, cx = 0, cy = 0, panx = 0, pany = 0;
+const F = {w:800, h:800};          // 카메라 프레임(= 내보내기 해상도)
+let PVW = 1000, PVH = 1000;        // 미리보기 캔버스 크기(작업 영역에 맞춰 자동 변경)
+const BOX = 0.9;                   // 작업 영역 중 프레임이 차지하는 최대 비율
+let exporting = false, ssN = 1;   // ssN: 내보내기 슈퍼샘플링 배율
+const previewK = () => Math.min(PVW*BOX/F.w, PVH*BOX/F.h);   // 내보내기 1px당 미리보기 px (프레임 크기에 따라 자동)
+function applyCanvasSize(){
+  const w = exporting ? F.w*ssN : PVW, h = exporting ? F.h*ssN : PVH;
+  if (cv.width !== w) cv.width = w;
+  if (cv.height !== h) cv.height = h;
+  $('#stage').classList.toggle('exporting', exporting);
+}
+function updateFrame(){
+  const k = previewK(), fw = F.w*k, fh = F.h*k, f = $('#frame');
+  f.style.width = fw/PVW*100 + '%'; f.style.height = fh/PVH*100 + '%';
+  f.style.left = (PVW - fw)/2/PVW*100 + '%'; f.style.top = (PVH - fh)/2/PVH*100 + '%';
+  layersDirty = true;
+  $('#frameLabel').textContent = `${F.w} x ${F.h}`;
+  $('#exinfo').textContent = `PNG는 배경이 투명하게 저장됩니다. 내보내기 해상도는 카메라 프레임과 같은 ${F.w}×${F.h}px 입니다.`;
+}
+function syncCam(){
+  $('#camX').value = Math.round(panx); $('#camY').value = Math.round(pany);
+  $('#zoom').value = zoom; $('#zmv').textContent = Math.round(zoom*100) + '%';
+  if (document.activeElement !== $('#zoomNum')) $('#zoomNum').value = Math.round(zoom*100);
+  syncEditor();
+}
+let filter = 'all';
+const hidden = new Set();
+
+const setStatus = t => $('#status').textContent = t || '';
+const fmt = s => { s = Math.max(0, s); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(Math.floor(s%60)).padStart(2,'0'); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const getBlob = () => new Promise(r => out.toBlob(r, 'image/png'));
+function save(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const dataUrl = f => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(new Error('파일을 읽을 수 없습니다: ' + f.name)); r.readAsDataURL(f); });
+async function loadImg(file){
+  try { return await createImageBitmap(file, {premultiplyAlpha:'none', colorSpaceConversion:'none'}); } catch (e) { /* 아래 방식으로 재시도 */ }
+  const url = await dataUrl(file);
+  return await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('이미지를 읽을 수 없습니다: ' + file.name)); i.src = url; });
+}
+
+/* ---------- 불러오기 ---------- */
+// skel + atlas + 이미지 파일 → SkeletonData (텍스처는 병렬 디코딩)
+async function buildSkeletonData(sk, at, imgs){
+  const atlas = new spine.TextureAtlas(await at.text());
+  const texs = [];
+  const bmps = await Promise.all(atlas.pages.map(p => {
+    const im = imgs.find(x => x.name === p.name) || imgs.find(x => x.name.toLowerCase() === p.name.toLowerCase());
+    if (!im) throw new Error('atlas가 요구하는 이미지가 없습니다: ' + p.name);
+    return loadImg(im);
+  }));
+  atlas.pages.forEach((p, i) => {
+    const bmp = bmps[i], mip = isGL2 || (isPot(bmp.width) && isPot(bmp.height));
+    const tex = new spine.GLTexture(mctx, bmp, mip);
+    p.setTexture(tex); texs.push({tex, mip});
+  });
+  const loader = new spine.AtlasAttachmentLoader(atlas);
+  const bin = !/\.json$/i.test(sk.name);
+  const parser = bin ? new spine.SkeletonBinary(loader) : new spine.SkeletonJson(loader);
+  const data = parser.readSkeletonData(bin ? new Uint8Array(await sk.arrayBuffer()) : JSON.parse(await sk.text()));
+  return {data, texs, pma: atlas.pages.some(p => p.pma)};
+}
+async function loadFiles(list){
+  const f = [...list];
+  const sk = f.find(x => /\.(skel|bytes|json)$/i.test(x.name));
+  const at = f.find(x => /\.atlas(\.txt)?$/i.test(x.name));
+  const imgs = f.filter(x => /\.(png|jpe?g|webp)$/i.test(x.name));
+  if (skel && !sk && !at && imgs.length) return addImages(imgs);
+  if (!sk || !at || !imgs.length) return setStatus('skel(또는 json), atlas, 이미지 파일을 함께 선택해 주세요.');
+  try {
+    setStatus('불러오는 중…');
+    const built = await buildSkeletonData(sk, at, imgs);
+    // 이전 모델의 GPU 텍스처 해제 (계속 바꿔 보면 메모리가 쌓여 느려지던 문제)
+    texList.forEach(t => { try { t.tex.dispose(); } catch (e) {} });
+    texList.length = 0; texList.push(...built.texs);
+    pma = built.pma;
+    applyMip();
+    data = built.data;
+    skel = new spine.Skeleton(data);
+    state = new spine.AnimationState(new spine.AnimationStateData(data));
+    hidden.clear(); dimmed.clear(); undoS.length = redoS.length = 0; pageData.clear(); syncHist();
+    buildUI();
+    $('#title').textContent = sk.name.replace(/\.(skel|bytes|json)$/i, '');
+    modelL().name = $('#title').textContent; renderList();
+    $('#sub').textContent = `Spine ${data.version} · 동작 ${data.animations.length}개 · 스킨 ${data.skins.length}개 · 슬롯 ${data.slots.length}개`;
+    $('#drop').classList.add('hide');
+    setStatus('');
+  } catch (e) {
+    console.error(e);
+    setStatus('불러오기 실패: ' + e.message + ' (런타임은 Spine 4.1 데이터만 지원합니다)');
+  }
+}
+
+function fillSelect(sel, names, pick){
+  sel.innerHTML = '';
+  names.forEach(n => sel.add(new Option(n, n)));
+  if (pick != null) sel.value = pick;
+}
+function fillSkinSelect(sel, names, pick){
+  sel.innerHTML = '';
+  sel.add(new Option('(없음)', ''));
+  names.forEach(n => sel.add(new Option(n, n)));
+  sel.value = pick || '';
+  sel.disabled = !names.length;
+}
+function buildUI(){
+  const animNames = data.animations.map(a => a.name);
+  fillSelect($('#anim'), animNames);
+  const skins = data.skins.map(s => s.name);
+  // 기본 스킨이 거의 비어 있는 모델(몬스터 Skin_Cool, 어사이드 등)은 가장 내용이 많은 스킨을 자동 선택
+  const cnt = s => Object.values(s.attachments || []).reduce((a, m) => a + (m ? Object.keys(m).length : 0), 0);
+  const def = data.defaultSkin, defN = def ? cnt(def) : 0;
+  let best = null, bestN = 0;
+  for (const s of data.skins) { if (s === def || /shadow/i.test(s.name)) continue; const n = cnt(s); if (n > bestN) { best = s; bestN = n; } }
+  const pickSkin = best && bestN > defN * 0.5 ? best.name : '';
+  // default 스킨은 항상 기본으로 깔리므로 목록에서는 뺌 (없음 = default 만)
+  const opts = skins.filter(n => !def || n !== def.name);
+  fillSkinSelect($('#skinA'), opts, pickSkin);
+  fillSkinSelect($('#skinB'), opts, '');
+  applySkin();
+  // 대기/루프 동작을 우선 선택 (스킨 이름 접미사와 맞는 것 우선)
+  const suf = (pickSkin || '').replace(/^skin_?/i, '');
+  const idle = animNames.filter(n => /idle|wait|stand|loop|lobby|normal|basic/i.test(n));
+  const firstAnim = idle.find(n => suf && n.toLowerCase().includes(suf.toLowerCase())) || idle[0] || animNames[0];
+  if (firstAnim) $('#anim').value = firstAnim;
+  setAnim($('#anim').value, true);
+  buildSlots();
+}
+function applySkin(){
+  const a = $('#skinA').value, b = $('#skinB').value;
+  const s = new spine.Skin('combo');
+  [...new Set([data.defaultSkin && data.defaultSkin.name, a, b].filter(Boolean))].forEach(n => s.addSkin(data.findSkin(n)));
+  skel.setSkin(s);
+  skel.setSlotsToSetupPose();
+}
+function setAnim(name, refit){
+  if (!name) return;
+  $('#anim').value = name;
+  skel.setToSetupPose();
+  track = state.setAnimation(0, name, true);
+  state.update(0); state.apply(skel); skel.updateWorldTransform();
+  if (refit) fitCamera();
+}
+function fitCamera(){
+  const o = new spine.Vector2(), s = new spine.Vector2();
+  skel.getBounds(o, s, []);
+  cx = o.x + s.x/2; cy = o.y + s.y/2;
+  fit = Math.max(s.x/F.w, s.y/F.h, 0.0001) * 1.15;
+  zoom = 1; panx = pany = 0; syncCam();
+}
+
+/* ---------- 렌더링 ---------- */
+const dimmed = new Set();   // 투명도를 0으로 만들어 둔 슬롯 (숨김을 풀면 원래 값으로 복구)
+function pose(){
+  dimmed.forEach(n => { const s = skel.findSlot(n); if (s) s.color.a = s.data.color.a; });
+  dimmed.clear();
+  state.apply(skel);
+  hidden.forEach(n => { const s = skel.findSlot(n); if (s){ s.color.a = 0; dimmed.add(n); } });
+  skel.updateWorldTransform();
+}
+function draw(){
+  gl.viewport(0, 0, cv.width, cv.height);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  const c = R.camera;
+  const u = fit / zoom;
+  c.position.set(cx - panx*u, cy + pany*u, 0);
+  c.zoom = u / (exporting ? ssN : previewK());
+  c.setViewport(cv.width, cv.height);
+  c.update();
+  const m = $('#pmaMode').value;
+  R.begin();
+  for (const l of layers){   // 모델 + 추가 모델을 레이어 순서대로
+    if (l.hidden) continue;
+    if (l.type === 'model') R.drawSkeleton(skel, m === 'auto' ? pma : m === 'on');
+    else if (l.type === 'spine'){ placeExtra(l); R.drawSkeleton(l.skel, m === 'auto' ? l.pma : m === 'on'); }
+  }
+  R.end();
+  if (exporting) composite();
+}
+/* ---------- 추가 모델 (여러 캐릭터/펫을 한 화면에) ---------- */
+// 위치(x, y)는 카메라 프레임 중심 기준 픽셀, scale 1 = 프레임에 꽉 차는 크기
+function placeExtra(l){
+  const u = fit / zoom, c = R.camera, k = l.scale * u / l.fitE;
+  l.skel.scaleX = (l.flip ? -k : k); l.skel.scaleY = k;
+  l.skel.x = c.position.x + l.x * u - l.ecx * l.skel.scaleX;
+  l.skel.y = c.position.y - l.y * u - l.ecy * k;
+  l.skel.updateWorldTransform();
+}
+function extras(){ return layers.filter(l => l.type === 'spine'); }
+function stepExtras(dt){
+  for (const l of extras()){
+    l.state.update(dt); l.state.apply(l.skel);
+  }
+}
+function applyExtraSkin(l){
+  const s = new spine.Skin('combo');
+  [...new Set([l.data.defaultSkin && l.data.defaultSkin.name, l.skinName].filter(Boolean))].forEach(n => { const k = l.data.findSkin(n); if (k) s.addSkin(k); });
+  l.skel.setSkin(s); l.skel.setSlotsToSetupPose();
+}
+function pickDefaults(d){   // buildUI 와 같은 규칙: 내용이 많은 스킨 + 대기 동작
+  const cnt = s => Object.values(s.attachments || []).reduce((a, m) => a + (m ? Object.keys(m).length : 0), 0);
+  const def = d.defaultSkin, defN = def ? cnt(def) : 0;
+  let best = null, bestN = 0;
+  for (const s of d.skins){ if (s === def || /shadow/i.test(s.name)) continue; const n = cnt(s); if (n > bestN){ best = s; bestN = n; } }
+  const skin = best && bestN > defN * 0.5 ? best.name : '';
+  const names = d.animations.map(a => a.name), suf = skin.replace(/^skin_?/i, '');
+  const idle = names.filter(n => /idle|wait|stand|loop|lobby|normal|basic/i.test(n));
+  return {skin, anim: idle.find(n => suf && n.toLowerCase().includes(suf.toLowerCase())) || idle[0] || names[0]};
+}
+async function addExtraModel(files, name, key){
+  const sk = files.find(x => /\.(skel|bytes|json)$/i.test(x.name)), at = files.find(x => /\.atlas/i.test(x.name));
+  const imgs = files.filter(x => /\.(png|jpe?g|webp)$/i.test(x.name));
+  const b = await buildSkeletonData(sk, at, imgs);
+  const l = {id: 'sp' + (++imgSeq), type: 'spine', name, key, data: b.data, texs: b.texs, pma: b.pma,
+    skel: new spine.Skeleton(b.data), state: new spine.AnimationState(new spine.AnimationStateData(b.data)),
+    x: 0, y: 0, scale: 1, flip: false, hidden: false, locked: false};
+  const p = pickDefaults(b.data);
+  l.skinName = p.skin; applyExtraSkin(l);
+  if (p.anim) l.state.setAnimation(0, l.anim = p.anim, true);
+  l.state.update(0); l.state.apply(l.skel); l.skel.updateWorldTransform();
+  const o = new spine.Vector2(), s = new spine.Vector2(); l.skel.getBounds(o, s, []);
+  l.ecx = o.x + s.x/2; l.ecy = o.y + s.y/2;
+  // 기본 모델과 같은 게임 내 비율로 (펫은 작게, 캐릭터는 같은 크기). 크기 100% = 기본 모델과 같은 배율
+  l.fitE = fit;
+  l.ecy = o.y;   // 발밑 기준으로 맞춤
+  const n = extras().length; l.scale = 1; l.x = ((n % 2 ? -1 : 1) * Math.ceil((n + 1) / 2)) * F.w * 0.28;
+  // 기본 모델의 발밑 높이에 맞춰 세우기
+  { const mo = new spine.Vector2(), ms = new spine.Vector2(), u = fit / zoom; skel.getBounds(mo, ms, []); l.y = (cy + pany*u - mo.y) / u; }
+  layers.push(l); sel = l.id; layersDirty = true;
+  applyMip(); renderList(); syncEditor(); syncExtraEd();
+  setStatus(`"${name}" 을(를) 화면에 추가했습니다. 레이어 탭에서 위치·동작·스킨을 바꿀 수 있습니다.`);
+  return l;
+}
+function removeExtra(l){
+  l.texs.forEach(t => { try { t.tex.dispose(); } catch (e) {} });
+  const i = layers.indexOf(l); if (i >= 0) layers.splice(i, 1);
+  if (sel === l.id) sel = 'model';
+  renderList(); syncEditor(); syncExtraEd();
+  if (typeof libRender === 'function'){ libRender(); renderOnScreen(); }
+}
+function syncExtraEd(){
+  const l = getL(sel), box = $('#spEd');
+  if (!l || l.type !== 'spine'){ box.style.display = 'none'; return; }
+  box.style.display = 'grid';
+  const fill = (el, arr, v) => { el.innerHTML = ''; arr.forEach(n => el.add(new Option(n, n))); el.value = v || arr[0] || ''; };
+  fill($('#spAnim'), l.data.animations.map(a => a.name), l.anim);
+  fillSkinSelect($('#spSkin'), l.data.skins.map(s => s.name).filter(n => !l.data.defaultSkin || n !== l.data.defaultSkin.name), l.skinName);
+  $('#spFlip').setAttribute('aria-pressed', String(!!l.flip));
+}
+function renderAt(anim, t){
+  skel.setToSetupPose();
+  track = state.setAnimation(0, anim, true);
+  track.trackTime = t;
+  for (const l of extras()){ const tr = l.state.getCurrent(0); if (tr){ tr.trackTime = t; } l.state.update(0); l.state.apply(l.skel); }
+  state.update(0); pose(); draw();
+}
+let last = 0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt = Math.min((t - last)/1000, 0.1); last = t;
+  if (layersDirty){ layersDirty = false; renderLayerCanvases(); }
+  updateSelBox();
+  if (!skel || busy) return;
+  if (document.hidden) return;   // 탭이 안 보일 때는 그리지 않음
+  state.update(playing && !scrubbing ? dt*speed : 0);
+  stepExtras(playing && !scrubbing ? dt*speed : 0);
+  pose(); draw();
+  const d = track.animation.duration || 1;
+  const at = track.getAnimationTime();
+  if (!scrubbing) $('#seek').value = Math.round(at/d*1000);
+  $('#t0').textContent = fmt(at); $('#t1').textContent = fmt(d);
+}
+requestAnimationFrame(loop);
+
+/* ---------- 파츠 썸네일 (화면에 보이는 줄만 그림) ---------- */
+const partThumbCache = new WeakMap();   // region -> 작은 캔버스
+function regionOfSlot(name){
+  const s = skel && skel.findSlot(name); if (!s) return null;
+  let a = s.getAttachment();
+  if (!a && s.data.attachmentName) a = skel.getAttachmentByName(name, s.data.attachmentName);
+  return a && a.region && regionTex(a.region) ? a.region : null;
+}
+function regionTex(r){ return r.texture || (r.page && r.page.texture) || null; }
+function drawPartThumb(cnv){
+  const x = cnv.getContext('2d'), W = cnv.width, H = cnv.height;
+  x.clearRect(0, 0, W, H);
+  const r = regionOfSlot(cnv.dataset.slot);
+  if (!r){ x.fillStyle = '#c9d8cf'; x.font = '10px sans-serif'; x.textAlign = 'center'; x.fillText('없음', W/2, H/2 + 3); return; }
+  let src = partThumbCache.get(r);
+  if (!src){
+    const img = regionTex(r).getImage(), iw = img.width, ih = img.height;
+    const sx = r.u * iw, sy = r.v * ih, sw = (r.u2 - r.u) * iw, sh = (r.v2 - r.v) * ih;
+    const rot = r.degrees === 90;
+    src = document.createElement('canvas');
+    const ow = rot ? sh : sw, oh = rot ? sw : sh, k = Math.min(1, 96 / Math.max(ow, oh, 1));
+    src.width = Math.max(1, Math.round(ow * k)); src.height = Math.max(1, Math.round(oh * k));
+    const c = src.getContext('2d');
+    if (rot){ c.translate(0, src.height); c.rotate(-Math.PI / 2); c.drawImage(img, sx, sy, sw, sh, 0, 0, src.height, src.width); }
+    else c.drawImage(img, sx, sy, sw, sh, 0, 0, src.width, src.height);
+    partThumbCache.set(r, src);
+  }
+  const k = Math.min(W / src.width, H / src.height);
+  x.drawImage(src, (W - src.width * k) / 2, (H - src.height * k) / 2, src.width * k, src.height * k);
+}
+const partObs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ partObs.unobserve(e.target); drawPartThumb(e.target); } }));
+
+/* ---------- 레이어(슬롯) ---------- */
+function buildSlots(){
+  const box = $('#slots'), q = $('#q').value.trim().toLowerCase();
+  box.innerHTML = '';
+  let shown = 0;
+  for (const sd of data.slots){
+    const att = sd.attachmentName || '';
+    if (q && !(sd.name.toLowerCase().includes(q) || att.toLowerCase().includes(q))) continue;
+    if (filter === 'off' && !hidden.has(sd.name)) continue;
+    const row = document.createElement('label');
+    row.className = 'slot' + (hidden.has(sd.name) ? ' off' : '');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = !hidden.has(sd.name); cb.dataset.n = sd.name;
+    const txt = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = sd.name;
+    const sm = document.createElement('small'); sm.textContent = att || '(어태치먼트 없음)';
+    const th = document.createElement('canvas'); th.className = 'pth'; th.width = th.height = 44; th.dataset.slot = sd.name;
+    txt.append(b, sm); row.append(cb, th, txt); box.append(row); shown++;
+    partObs.observe(th);
+  }
+  $('#cnt').textContent = `숨김 ${hidden.size} · 전체 ${data.slots.length} · 표시 ${shown}`;
+}
+$('#slots').addEventListener('change', e => {
+  const n = e.target.dataset.n; if (!n) return;
+  change(() => e.target.checked ? hidden.delete(n) : hidden.add(n));
+});
+$('#q').oninput = () => data && buildSlots();
+$('#f-all').onclick = () => { filter = 'all'; data && buildSlots(); };
+$('#f-off').onclick = () => { filter = 'off'; data && buildSlots(); };
+$('#showall').onclick = () => data && change(() => hidden.clear());
+$('#hideall').onclick = () => {
+  if (!data) return;
+  const q = $('#q').value.trim().toLowerCase();
+  change(() => data.slots.forEach(sd => { if (!q || sd.name.toLowerCase().includes(q) || (sd.attachmentName||'').toLowerCase().includes(q)) hidden.add(sd.name); }));
+};
+
+/* ---------- 내보내기 ---------- */
+const fpsVal = () => Math.min(60, Math.max(1, +$('#fps').value || 15));
+function effSS(){
+  let n = +$('#ss').value || 1;
+  while (n > 1 && (F.w*n > 8192 || F.h*n > 8192 || F.w*F.h*n*n > 6e7)) n /= 2;
+  return n;
+}
+function applyMip(){
+  const on = $('#mip').checked;
+  [...texList, ...extras().flatMap(l => l.texs)].forEach(({tex, mip}) => {
+    if (!mip) return;
+    try { tex.bind(); } catch (e) { gl.bindTexture(gl.TEXTURE_2D, tex.getTexture()); }
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, on ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+  });
+}
+async function guard(fn){
+  if (!skel) return setStatus('먼저 Spine 파일을 불러와 주세요.');
+  const cur = $('#anim').value, wasPlaying = playing;
+  ssN = effSS(); exporting = true; applyCanvasSize();
+  if (ssN < (+$('#ss').value || 1)) setStatus(`프레임이 커서 슈퍼샘플링을 ${ssN}배로 낮췄습니다.`);
+  try { await fn(); }
+  catch (e) { console.error(e); setStatus('내보내기 실패: ' + e.message); }
+  finally { busy = false; exporting = false; ssN = 1; applyCanvasSize(); playing = wasPlaying; setAnim(cur, false); }
+}
+$('#ex-png').onclick = () => guard(async () => {
+  busy = true; pose(); draw();
+  save(await getBlob(), `${$('#title').textContent}_${$('#anim').value}.png`);
+  setStatus('PNG를 저장했습니다.');
+});
+async function exportFrames(anims, name){
+  busy = true;
+  const fps = fpsVal(), zip = new JSZip();
+  for (const a of anims){
+    const d = data.findAnimation(a).duration;
+    const n = Math.max(1, Math.round(d*fps));
+    for (let i = 0; i < n; i++){
+      renderAt(a, i/fps);
+      zip.file((anims.length > 1 ? a + '/' : '') + `${a}_${String(i).padStart(3,'0')}.png`, await getBlob());
+      setStatus(`${a}  ${i+1}/${n}`);
+    }
+  }
+  setStatus('ZIP으로 묶는 중…');
+  save(await zip.generateAsync({type:'blob'}), name + '.zip');
+  setStatus('ZIP을 저장했습니다.');
+}
+$('#ex-seq').onclick = () => guard(() => exportFrames([$('#anim').value], `${$('#title').textContent}_${$('#anim').value}`));
+$('#ex-all').onclick = () => guard(() => exportFrames(data.animations.map(a => a.name), `${$('#title').textContent}_all`));
+$('#ex-webm').onclick = () => guard(async () => {
+  if (!window.MediaRecorder) throw new Error('이 브라우저는 녹화를 지원하지 않습니다');
+  const d = track.animation.duration;
+  const mime = ['video/webm;codecs=vp9', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+  track.trackTime = 0; playing = true; busy = false;
+  const rec = new MediaRecorder(out.captureStream(fpsVal()), {mimeType: mime, videoBitsPerSecond: 8e6});
+  const chunks = []; rec.ondataavailable = e => chunks.push(e.data);
+  const stopped = new Promise(r => rec.onstop = r);
+  rec.start(); setStatus('녹화 중…');
+  await sleep(d/speed*1000 + 120);
+  rec.stop(); await stopped;
+  save(new Blob(chunks, {type:'video/webm'}), `${$('#title').textContent}_${$('#anim').value}.webm`);
+  setStatus('WebM을 저장했습니다.');
+});
+
+const mp4Realtime = async () => {
+  if (!window.MediaRecorder) throw new Error('이 브라우저는 녹화를 지원하지 않습니다');
+  const mime = ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.4d002a', 'video/mp4;codecs=avc1', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m));
+  if (!mime) throw new Error('이 브라우저는 MP4 녹화를 지원하지 않습니다. 최신 Chrome(126+)이나 Safari를 쓰거나 WebM으로 녹화해 주세요');
+  const fps = fpsVal(), d = track.animation.duration, vw = F.w & ~1, vh = F.h & ~1;   // H.264는 짝수 크기 필요
+  const vid = document.createElement('canvas'); vid.width = vw; vid.height = vh;
+  const vx = vid.getContext('2d'), bgc2 = $('#mp4Bg').value;
+  const capMB = Math.max(0, +$('#mp4Size').value || 0), cap = capMB * 1048576, MINBR = 1.5e5;
+  const total = d/speed*1000 + 120;                       // 한 번 녹화하는 시간(ms)
+  let live = true;
+  const tick = () => { if (!live) return; vx.fillStyle = bgc2; vx.fillRect(0, 0, vw, vh); vx.drawImage(out, 0, 0, vw, vh, 0, 0, vw, vh); requestAnimationFrame(tick); };
+  tick();
+  // 한 번 녹화. 용량 제한이 있으면 도중에 예상 용량을 계산해 크게 넘을 것 같으면 일찍 중단
+  const attempt = async (bps, allowAbort) => {
+    track.trackTime = 0; playing = true; busy = false;
+    const stream = vid.captureStream(fps);
+    const rec = new MediaRecorder(stream, {mimeType: mime, videoBitsPerSecond: bps});
+    const chunks = []; let bytes = 0, aborted = false, projected = 0;
+    rec.ondataavailable = e => { if (e.data.size){ chunks.push(e.data); bytes += e.data.size; } };
+    const stopped = new Promise(r => rec.onstop = r);
+    const t0 = performance.now(); rec.start(250);
+    await new Promise(res => {
+      const iv = setInterval(() => {
+        const el = performance.now() - t0;
+        if (allowAbort && el > total*0.4 && el < total*0.9){ projected = bytes / el * total; if (projected > cap*1.2) aborted = true; }
+        if (aborted || el >= total){ clearInterval(iv); res(); }
+      }, 100);
+    });
+    rec.stop(); await stopped;
+    stream.getTracks().forEach(t => t.stop());
+    return {blob: new Blob(chunks, {type:'video/mp4'}), size: chunks.reduce((a, c) => a + c.size, 0), aborted, projected};
+  };
+  const autoBr = Math.min(40e6, Math.max(4e6, Math.round(vw*vh*fps*0.3)));
+  let br = cap ? Math.max(MINBR, Math.round(cap*8*0.88 / (total/1000))) : autoBr;
+  const MAXT = cap ? 3 : 1;
+  let best = null, last = null, tries = 0;
+  while (tries < MAXT){
+    tries++;
+    setStatus('MP4 녹화 중…' + (cap ? ` (${tries}/${MAXT}차 · ${(br/1e6).toFixed(2)}Mbps)` : ''));
+    const r = await attempt(br, cap > 0 && tries < MAXT && br > MINBR);
+    last = r;
+    if (!cap) break;
+    if (r.aborted){ br = Math.max(MINBR, Math.round(br * cap / r.projected * 0.9)); continue; }   // 너무 커질 것 같아 중단 -> 낮춰 재녹화
+    if (r.size <= cap){
+      if (!best || r.size > best.size) best = r;
+      if (r.size >= cap*0.85 || tries >= MAXT) break;
+      br = Math.round(br * cap / r.size * 0.95);                               // 여유가 크면 올려서 재시도
+    } else {
+      if (br <= MINBR) break;
+      br = Math.max(MINBR, Math.round(br * cap / r.size * 0.92));              // 초과하면 낮춰서 재시도
+    }
+  }
+  live = false;
+  const res = best || last, rmb = res.size/1048576;
+  save(res.blob, `${$('#title').textContent}_${$('#anim').value}.mp4`);
+  const base = `MP4를 저장했습니다 (${vw}×${vh}, 실시간 녹화 ≈${fps}fps, ${rmb.toFixed(2)}MB)`;
+  setStatus(!cap ? base + '.' : res.size <= cap ? `${base} · 목표 ${capMB}MB 이하 (${tries}회 녹화)` : `${base} — 목표 ${capMB}MB를 넘었습니다. 용량을 늘리거나 해상도/FPS를 낮춰 보세요.`);
+};
+
+// H.264 레벨 선택 (해상도·FPS에 맞는 최소 레벨)
+function h264Level(w, h, fps){
+  const mbs = Math.ceil(w/16) * Math.ceil(h/16), rate = mbs * fps;
+  const L = [[0x1f, 3600, 108000], [0x28, 8192, 245760], [0x2a, 8704, 522240], [0x32, 22080, 589824], [0x33, 36864, 983040], [0x34, 36864, 2073600]];
+  return (L.find(([, fs, r]) => mbs <= fs && rate <= r) || L[L.length-1])[0];
+}
+// WebCodecs로 프레임 단위 인코딩 -> FPS가 정확히 고정된 MP4
+async function mp4Fixed(){
+  busy = true;
+  const fps = fpsVal(), anim = $('#anim').value, dur = data.findAnimation(anim).duration;
+  const vdur = dur / speed, n = Math.max(1, Math.round(vdur * fps));        // 재생 속도를 반영한 영상 길이
+  const vw = F.w & ~1, vh = F.h & ~1, bg = $('#mp4Bg').value;
+  const capMB = Math.max(0, +$('#mp4Size').value || 0), cap = capMB * 1048576, MINBR = 1.5e5;
+  const autoBr = Math.min(60e6, Math.max(4e6, Math.round(vw*vh*fps*0.3)));
+  const startBr = cap ? Math.min(100e6, Math.max(MINBR, Math.round(cap*8*0.95 / (n/fps)))) : autoBr;
+  const lvl = h264Level(vw, vh, fps).toString(16).padStart(2, '0');
+  let cfg = null;
+  for (const mode of (cap ? ['constant', 'variable'] : ['variable'])){
+    for (const pr of ['6400', '4d00', '4200']){
+      const c = {codec: `avc1.${pr}${lvl}`, width: vw, height: vh, bitrate: startBr, bitrateMode: mode, framerate: fps, avc: {format:'avc'}, latencyMode: 'quality'};
+      try { const r = await VideoEncoder.isConfigSupported(c); if (r.supported){ cfg = r.config ? {...c, ...r.config} : c; break; } } catch (e) { /* 다음 조합 */ }
+    }
+    if (cfg) break;
+  }
+  if (!cfg) return false;
+  const vid = document.createElement('canvas'); vid.width = vw; vid.height = vh;
+  const vx = vid.getContext('2d'), keyEvery = Math.max(1, fps * 2);
+  const encodeOnce = async (br, tag) => {
+    const target = new Mp4Muxer.ArrayBufferTarget();
+    const muxer = new Mp4Muxer.Muxer({target, video: {codec:'avc', width: vw, height: vh, frameRate: fps}, fastStart: 'in-memory'});
+    let encErr = null;
+    const enc = new VideoEncoder({output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: e => { encErr = e; }});
+    enc.configure({...cfg, bitrate: br});
+    for (let i = 0; i < n; i++){
+      renderAt(anim, (i / fps) * speed);                                   // 프레임 i의 시간 = i/fps (속도 반영)
+      vx.fillStyle = bg; vx.fillRect(0, 0, vw, vh); vx.drawImage(out, 0, 0, vw, vh, 0, 0, vw, vh);
+      const vf = new VideoFrame(vid, {timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps)});
+      enc.encode(vf, {keyFrame: i % keyEvery === 0}); vf.close();
+      while (enc.encodeQueueSize > 6 && !encErr) await sleep(1);
+      if (encErr) throw encErr;
+      setStatus(`MP4 인코딩${tag} ${i+1}/${n}`);
+      if (i % 3 === 0) await sleep(0);
+    }
+    await enc.flush(); enc.close();
+    if (encErr) throw encErr;
+    muxer.finalize();
+    return target.buffer;
+  };
+  // 목표 용량: 넘지 않는 범위에서 가장 큰(= 화질 최대) 결과를 찾는다
+  let best = null, last = null, br = startBr, tries = 0;
+  const MAXT = cap ? 4 : 1;
+  while (tries < MAXT){
+    tries++;
+    const buf = await encodeOnce(br, tries > 1 ? ` (${tries}차 · ${(br/1e6).toFixed(2)}Mbps)` : '');
+    const sz = buf.byteLength; last = {buf, sz, br};
+    if (!cap) break;
+    if (sz <= cap){
+      if (!best || sz > best.sz) best = last;
+      if (sz >= cap*0.9 || tries >= MAXT) break;
+      br = Math.round(br * cap / sz * 0.97);                               // 여유가 크면 비트레이트를 올려 재시도
+    } else {
+      if (br <= MINBR) break;
+      br = Math.max(MINBR, Math.round(br * cap / sz * 0.96));              // 초과하면 낮춰 재시도
+    }
+  }
+  const res = best || last, mb = res.sz/1048576;
+  save(new Blob([res.buf], {type:'video/mp4'}), `${$('#title').textContent}_${anim}.mp4`);
+  const base = `MP4를 저장했습니다 (${vw}×${vh}, ${fps}fps 고정, ${n}프레임, ${mb.toFixed(2)}MB, ${(res.br/1e6).toFixed(2)}Mbps)`;
+  setStatus(!cap ? base + '.' : res.sz <= cap ? `${base} · 목표 ${capMB}MB 이하` : `${base} — 목표 ${capMB}MB를 넘었습니다. 용량을 늘리거나 해상도/FPS를 낮춰 보세요.`);
+  return true;
+}
+$('#ex-mp4').onclick = () => guard(async () => {
+  if ($('#mp4Mode').value === 'fixed'){
+    const ok = typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined' && typeof Mp4Muxer !== 'undefined';
+    if (ok && await mp4Fixed()) return;
+    setStatus('이 브라우저는 프레임 고정 인코딩을 지원하지 않아 실시간 녹화로 대체합니다…');
+  }
+  busy = false;
+  await mp4Realtime();
+});
+
+/* ---------- 컨트롤 ---------- */
+$('#anim').onchange = e => setAnim(e.target.value, false);
+$('#skinA').onchange = $('#skinB').onchange = () => { if (!skel) return; applySkin(); const a = $('#anim').value; setAnim(a, false); buildSlots(); };
+$('#play').onclick = () => { playing = !playing; $('#play').textContent = playing ? '⏸' : '▶'; };
+const stepAnim = dir => { if (!data) return; const n = data.animations.map(a => a.name), i = n.indexOf($('#anim').value); setAnim(n[(i + dir + n.length) % n.length], false); };
+const stepFrame = dir => { if (!track) return; playing = false; $('#play').textContent = '▶'; track.trackTime = Math.max(0, track.trackTime + dir/fpsVal()); };
+$('#prev').onclick = () => stepAnim(-1);
+$('#next').onclick = () => stepAnim(1);
+const seek = $('#seek');
+seek.addEventListener('pointerdown', () => scrubbing = true);
+window.addEventListener('pointerup', () => scrubbing = false);
+seek.oninput = () => { if (track) track.trackTime = seek.value/1000 * (track.animation.duration || 1); };
+$('#speed').oninput = e => { speed = +e.target.value; $('#spv').textContent = speed.toFixed(1) + 'x'; };
+$('#zoom').oninput = e => { zoom = +e.target.value; syncCam(); };
+$('#bg').onchange = e => $('#stage').className = e.target.value;
+$('#reset').onclick = () => skel && fitCamera();
+$('#recenter').onclick = () => { panx = pany = 0; syncCam(); };
+$('#pick').onclick = $('#reload').onclick = () => $('#file').click();
+$('#file').onchange = e => { loadFiles(e.target.files); e.target.value = ''; };
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + b.dataset.tab));
+});
+
+const stage = $('#stage');
+['dragenter','dragover'].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.remove('over'); }));
+stage.addEventListener('drop', e => loadFiles(e.dataTransfer.files));
+
+let drag = null;
+cv.addEventListener('pointerdown', e => {
+  drag = {x:e.clientX, y:e.clientY, sx:e.clientX, sy:e.clientY, moved:false, t:null};
+  if (layerEdit && !pickMode){
+    // 누른 곳에 보이는 모델/이미지를 바로 선택 (뒤에 있는 모델도 보이는 부분을 누르면 잡힘)
+    const hit = skel ? layerAt(e) : null;
+    if (hit && hit.id !== sel){ sel = hit.id; renderList(); syncEditor(); syncExtraEd(); }
+    drag.t = selTarget();
+  }
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag || !skel) return;
+  if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 4) { drag.moved = true; cv.style.cursor = 'grabbing'; }
+  if (!drag.moved) return;
+  if (drag.t){
+    const f = cv.width / cv.clientWidth / previewK(), t = getT(drag.t);
+    setT(drag.t, {x: t.x + (e.clientX - drag.x)*f, y: t.y + (e.clientY - drag.y)*f});
+  }
+  drag.x = e.clientX; drag.y = e.clientY;
+});
+cv.addEventListener('pointerup', e => {
+  const d = drag; drag = null; cv.style.cursor = '';
+  if (!d || d.moved || !skel || !pickMode) return;
+  const r = cv.getBoundingClientRect(), z = R.camera.zoom;
+  const px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
+  const name = pickSlot(R.camera.position.x + (px - cv.width/2) * z, R.camera.position.y - (py - cv.height/2) * z);
+  if (name) { change(() => hidden.add(name)); setStatus(`"${name}" 숨김 · Ctrl+Z로 되돌리기`); }
+  else setStatus('그 위치에 부품이 없습니다.');
+});
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (!layerEdit) return;
+  const l = selTarget(); if (!l) return;
+  setT(l, {s: getT(l).s * Math.exp(-e.deltaY*0.001)});
+}, {passive:false});
+
+/* ---------- 숨김 기록(실행 취소/다시 실행) ---------- */
+const undoS = [], redoS = [];
+function syncHist(){ $('#undo').disabled = !undoS.length; $('#redo').disabled = !redoS.length; }
+function setHidden(arr){ hidden.clear(); arr.forEach(n => hidden.add(n)); syncHist(); if (data) buildSlots(); }
+function change(fn){
+  const before = [...hidden];
+  fn();
+  if (before.length === hidden.size && before.every(n => hidden.has(n))) return;
+  undoS.push(before); if (undoS.length > 200) undoS.shift();
+  redoS.length = 0; syncHist(); buildSlots();
+}
+function undo(){ if (!undoS.length) return; redoS.push([...hidden]); setHidden(undoS.pop()); }
+function redo(){ if (!redoS.length) return; undoS.push([...hidden]); setHidden(redoS.pop()); }
+$('#undo').onclick = undo; $('#redo').onclick = redo;
+
+/* ---------- 클릭하여 부품 숨기기 ---------- */
+let pickMode = false;
+$('#pickmode').onclick = e => {
+  pickMode = !pickMode;
+  e.target.setAttribute('aria-pressed', pickMode);
+  cv.classList.toggle('pick', pickMode);
+};
+const pageData = new Map();
+function alphaAt(att, u, v){
+  try {
+    const img = (att.region.texture || att.region.page.texture).getImage();
+    let pd = pageData.get(img);
+    if (!pd){
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(img, 0, 0);
+      pd = {w:c.width, h:c.height, d:x.getImageData(0, 0, c.width, c.height).data};
+      pageData.set(img, pd);
+    }
+    const px = Math.min(pd.w-1, Math.max(0, Math.floor(u*pd.w))), py = Math.min(pd.h-1, Math.max(0, Math.floor(v*pd.h)));
+    return pd.d[(py*pd.w + px)*4 + 3];
+  } catch (e) { return 255; }
+}
+// 화면 좌표 → 월드 좌표
+function screenToWorld(e){
+  const r = cv.getBoundingClientRect(), z = R.camera.zoom;
+  const px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
+  return {x: R.camera.position.x + (px - cv.width/2) * z, y: R.camera.position.y - (py - cv.height/2) * z, px, py};
+}
+// 캔버스를 누른 위치에 실제로 보이는 레이어(위에서부터) 찾기: 모델은 투명한 곳은 통과, 이미지는 사각형
+function layerAt(e){
+  const w = screenToWorld(e), k = previewK();
+  for (let i = layers.length - 1; i >= 0; i--){
+    const l = layers[i];
+    if (l.hidden || l.locked) continue;
+    if (l.type === 'model'){ if (skel && pickSlot(w.x, w.y, skel, hidden)) return l; }
+    else if (l.type === 'spine'){ if (pickSlot(w.x, w.y, l.skel, null)) return l; }
+    else if (l.type === 'image'){
+      const dw = l.w0 * l.scale * k, dh = l.h0 * l.scale * k, cx0 = PVW/2 + l.x*k, cy0 = PVH/2 + l.y*k;
+      const sx = w.px * PVW / cv.width, sy = w.py * PVH / cv.height;
+      if (Math.abs(sx - cx0) <= dw/2 && Math.abs(sy - cy0) <= dh/2) return l;
+    }
+  }
+  return null;
+}
+function pickSlot(wx, wy, sk, hid){
+  if (sk === undefined){ sk = skel; hid = hidden; }
+  const order = sk.drawOrder;
+  for (let i = order.length - 1; i >= 0; i--){
+    const s = order[i];
+    if ((hid && hid.has(s.data.name)) || !s.bone.active || s.color.a < 0.02) continue;
+    const a = s.getAttachment(); if (!a) continue;
+    let verts, tris, uvs;
+    if (a instanceof spine.MeshAttachment){
+      verts = new Float32Array(a.worldVerticesLength);
+      a.computeWorldVertices(s, 0, a.worldVerticesLength, verts, 0, 2);
+      tris = a.triangles; uvs = a.uvs;
+    } else if (a instanceof spine.RegionAttachment){
+      verts = new Float32Array(8); a.computeWorldVertices(s, verts, 0, 2);
+      tris = [0,1,2,2,3,0]; uvs = a.uvs;
+    } else continue;
+    for (let t = 0; t < tris.length; t += 3){
+      const i0 = tris[t]*2, i1 = tris[t+1]*2, i2 = tris[t+2]*2;
+      const x0 = verts[i0], y0 = verts[i0+1], x1 = verts[i1], y1 = verts[i1+1], x2 = verts[i2], y2 = verts[i2+1];
+      const den = (y1 - y2)*(x0 - x2) + (x2 - x1)*(y0 - y2);
+      if (Math.abs(den) < 1e-9) continue;
+      const l0 = ((y1 - y2)*(wx - x2) + (x2 - x1)*(wy - y2)) / den;
+      const l1 = ((y2 - y0)*(wx - x2) + (x0 - x2)*(wy - y2)) / den;
+      const l2 = 1 - l0 - l1;
+      if (l0 < 0 || l1 < 0 || l2 < 0) continue;
+      const u = l0*uvs[i0] + l1*uvs[i1] + l2*uvs[i2], v = l0*uvs[i0+1] + l1*uvs[i1+1] + l2*uvs[i2+1];
+      if (alphaAt(a, u, v) >= 16) return s.data.name;
+    }
+  }
+  return null;
+}
+
+/* ---------- 키보드 ---------- */
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName, typing = tag === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || tag === 'TEXTAREA';
+  const inForm = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  if ((e.ctrlKey || e.metaKey) && !typing){
+    if (e.code === 'KeyZ' && !e.shiftKey){ e.preventDefault(); undo(); }
+    else if (e.code === 'KeyY' || (e.code === 'KeyZ' && e.shiftKey)){ e.preventDefault(); redo(); }
+    return;
+  }
+  if (inForm || !skel) return;
+  if (e.key === 'ArrowLeft'){ e.preventDefault(); stepFrame(-1); }
+  else if (e.key === 'ArrowRight'){ e.preventDefault(); stepFrame(1); }
+});
+
+/* ---------- GIF 인코더 ---------- */
+function buildPalette(hist, maxN, iters){
+  // 채널당 6비트(262144구간) 히스토그램 -> 가중 median cut -> k-means 보정
+  const ids = []; for (let k = 0; k < 262144; k++) if (hist[k]) ids.push(k);
+  const m = ids.length; if (!m) return [[0,0,0]];
+  const C = [new Float32Array(m), new Float32Array(m), new Float32Array(m)], W = new Float32Array(m);
+  for (let i = 0; i < m; i++){ const k = ids[i]; C[0][i] = (((k >> 12) & 63) << 2) + 2; C[1][i] = (((k >> 6) & 63) << 2) + 2; C[2][i] = ((k & 63) << 2) + 2; W[i] = hist[k]; }
+  const SW = [1.4, 2, 1.7];
+  const mk = list => {
+    const mn = [255,255,255], mx = [0,0,0]; let n = 0;
+    for (const i of list){ n += W[i]; for (let c = 0; c < 3; c++){ const v = C[c][i]; if (v < mn[c]) mn[c] = v; if (v > mx[c]) mx[c] = v; } }
+    let c = 0, r = -1;
+    for (let j = 0; j < 3; j++){ const rr = (mx[j] - mn[j]) * SW[j]; if (rr > r){ r = rr; c = j; } }
+    return {list, c, sc: (r + 1) * Math.sqrt(n)};
+  };
+  let boxes = [mk(Array.from({length:m}, (_, i) => i))];
+  while (boxes.length < maxN){
+    let bi = -1, bs = 0;
+    boxes.forEach((b, i) => { if (b.list.length > 1 && b.sc > bs){ bs = b.sc; bi = i; } });
+    if (bi < 0) break;
+    const b = boxes[bi], cc = C[b.c];
+    b.list.sort((x, y) => cc[x] - cc[y]);
+    let tot = 0; for (const i of b.list) tot += W[i];
+    let acc = 0, cut = 1;
+    for (let i = 0; i < b.list.length - 1; i++){ acc += W[b.list[i]]; cut = i + 1; if (acc >= tot/2) break; }
+    boxes.splice(bi, 1, mk(b.list.slice(0, cut)), mk(b.list.slice(cut)));
+  }
+  const N = boxes.length, P = [new Float64Array(N), new Float64Array(N), new Float64Array(N)];
+  boxes.forEach((b, j) => { let w = 0; for (const i of b.list){ w += W[i]; for (let c = 0; c < 3; c++) P[c][j] += C[c][i]*W[i]; } for (let c = 0; c < 3; c++) P[c][j] /= w; });
+  for (let it = 0; it < iters; it++){
+    const S = [new Float64Array(N), new Float64Array(N), new Float64Array(N)], SWt = new Float64Array(N);
+    for (let i = 0; i < m; i++){
+      const r = C[0][i], g = C[1][i], b = C[2][i]; let best = 0, bd = 1e18;
+      for (let j = 0; j < N; j++){ const dr = r - P[0][j], dg = g - P[1][j], db = b - P[2][j], d = 2*dr*dr + 4*dg*dg + 3*db*db; if (d < bd){ bd = d; best = j; } }
+      const w = W[i]; S[0][best] += r*w; S[1][best] += g*w; S[2][best] += b*w; SWt[best] += w;
+    }
+    for (let j = 0; j < N; j++) if (SWt[j] > 0) for (let c = 0; c < 3; c++) P[c][j] = S[c][j]/SWt[j];
+  }
+  return Array.from({length:N}, (_, j) => [0,1,2].map(c => Math.max(0, Math.min(255, Math.round(P[c][j])))));
+}
+function lzw(idx){
+  const minC = 8, clear = 256, eoi = 257, HS = 16411;
+  const hk = new Int32Array(HS).fill(-1), hv = new Int32Array(HS);
+  const out = []; let size = 9, next = 258, cur = 0, bits = 0;
+  const emit = c => { cur |= c << bits; bits += size; while (bits >= 8){ out.push(cur & 255); cur >>>= 8; bits -= 8; } };
+  emit(clear);
+  let prefix = idx[0];
+  for (let i = 1; i < idx.length; i++){
+    const k = idx[i], key = prefix*256 + k;
+    let h = (Math.imul(key, 2654435761) >>> 0) % HS;
+    while (hk[h] !== -1 && hk[h] !== key) h = (h + 1) % HS;
+    if (hk[h] === key){ prefix = hv[h]; continue; }
+    emit(prefix);
+    if (next < 4096){
+      hk[h] = key; hv[h] = next++;
+      if (next > (1 << size) && size < 12) size++;
+    } else {
+      emit(clear); hk.fill(-1); size = 9; next = 258;
+    }
+    prefix = k;
+  }
+  emit(prefix);
+  next++; if (next > (1 << size) && size < 12) size++;
+  emit(eoi);
+  if (bits > 0) out.push(cur & 255);
+  return Uint8Array.from(out);
+}
+const BAYER = [0,32,8,40,2,34,10,42, 48,16,56,24,50,18,58,26, 12,44,4,36,14,46,6,38, 60,28,52,20,62,30,54,22, 3,35,11,43,1,33,9,41, 51,19,59,27,49,17,57,25, 15,47,7,39,13,45,5,37, 63,31,55,23,61,29,53,21];
+function quantFrame(img, w, h, lut, pal, N, transparent, mode){
+  const d = img.data, out = new Uint8Array(w*h);
+  const near = (r, g, b) => { let best = 1, bd = 1e9;
+    for (let i = 1; i <= N; i++){ const dr = r - pal[i*3], dg = g - pal[i*3+1], db = b - pal[i*3+2], dd = 2*dr*dr + 4*dg*dg + 3*db*db; if (dd < bd){ bd = dd; best = i; } }
+    return best; };
+  const look = (r, g, b) => { const k = (r << 16) | (g << 8) | b; let v = lut[k]; if (!v){ v = near(r, g, b); lut[k] = v; } return v; };  // 8비트 정확도
+  const cl = v => v < 0 ? 0 : v > 254.5 ? 255 : (v + 0.5) | 0;
+  if (mode === 'none'){
+    for (let i = 0, j = 0; i < out.length; i++, j += 4) out[i] = transparent && d[j+3] < 128 ? 0 : look(d[j], d[j+1], d[j+2]);
+    return out;
+  }
+  if (mode === 'bayer'){
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+      const i = y*w + x, j = i*4;
+      if (transparent && d[j+3] < 128){ out[i] = 0; continue; }
+      const t = (BAYER[((y & 7) << 3) | (x & 7)]/64 - 0.5) * 14;
+      out[i] = look(cl(d[j] + t), cl(d[j+1] + t), cl(d[j+2] + t));
+    }
+    return out;
+  }
+  const buf = new Float32Array(w*h*3);
+  for (let i = 0, j = 0; i < out.length; i++, j += 4){ buf[i*3] = d[j]; buf[i*3+1] = d[j+1]; buf[i*3+2] = d[j+2]; }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    const i = y*w + x;
+    if (transparent && d[i*4+3] < 128){ out[i] = 0; continue; }
+    const r = cl(buf[i*3]), g = cl(buf[i*3+1]), b = cl(buf[i*3+2]);
+    const v = look(r, g, b); out[i] = v;
+    const er = [r - pal[v*3], g - pal[v*3+1], b - pal[v*3+2]];
+    for (let c = 0; c < 3; c++){
+      const e = er[c] * 0.75;   // 오차 확산을 약간 줄여 프레임 간 노이즈 완화
+      if (x+1 < w) buf[(i+1)*3+c] += e*7/16;
+      if (y+1 < h){
+        if (x > 0) buf[(i+w-1)*3+c] += e*3/16;
+        buf[(i+w)*3+c] += e*5/16;
+        if (x+1 < w) buf[(i+w+1)*3+c] += e*1/16;
+      }
+    }
+  }
+  return out;
+}
+$('#ex-gif').onclick = () => guard(async () => {
+  busy = true;
+  const fps = fpsVal(), anim = $('#anim').value, dur = data.findAnimation(anim).duration;
+  const n = Math.max(1, Math.round(dur*fps));
+  const sc = +$('#gifScale').value, gw = Math.max(1, Math.round(F.w*sc)), gh = Math.max(1, Math.round(F.h*sc));
+  const bg = $('#gifBg').value, transparent = bg === 'transparent', mode = $('#gifDither').value, local = $('#gifPal').value === 'local';
+  const c2 = document.createElement('canvas'); c2.width = gw; c2.height = gh;
+  const g = c2.getContext('2d', {willReadFrequently:true}); g.imageSmoothingQuality = 'high';
+  const grab = i => {
+    renderAt(anim, i/fps);
+    g.clearRect(0, 0, gw, gh);
+    if (!transparent){ g.fillStyle = bg; g.fillRect(0, 0, gw, gh); }
+    g.drawImage(out, 0, 0, gw, gh);
+    return g.getImageData(0, 0, gw, gh);
+  };
+  const addHist = (d, h) => { for (let j = 0; j < d.length; j += 4) if (!transparent || d[j+3] >= 128) h[((d[j] >> 2) << 12) | ((d[j+1] >> 2) << 6) | (d[j+2] >> 2)]++; };
+  const mkPal = (h, it) => { const colors = buildPalette(h, 255, it), N = colors.length, pal = new Uint8Array(768); colors.forEach((c, i) => pal.set(c, (i+1)*3)); return {pal, N}; };
+  const lut = new Uint8Array(1 << 24);
+  let GP = null;
+  if (!local){   // 1단계: 전체 프레임에서 공통 팔레트 만들기
+    const hist = new Uint32Array(262144);
+    for (let i = 0; i < n; i++){ addHist(grab(i).data, hist); setStatus(`GIF 색상 분석 ${i+1}/${n}`); await sleep(0); }
+    setStatus('팔레트 최적화 중…'); await sleep(0);
+    GP = mkPal(hist, 3);
+  }
+  const u16 = v => [v & 255, (v >> 8) & 255];
+  const parts = [new Uint8Array([71,73,70,56,57,97, ...u16(gw), ...u16(gh), GP ? 0xF7 : 0x70, 0, 0])];
+  if (GP) parts.push(GP.pal);
+  parts.push(new Uint8Array([0x21,0xFF,0x0B, ...'NETSCAPE2.0'.split('').map(c => c.charCodeAt(0)), 3,1,0,0,0]));
+  for (let i = 0; i < n; i++){
+    const img = grab(i);
+    let P = GP;
+    if (local){ const h = new Uint32Array(262144); addHist(img.data, h); P = mkPal(h, 2); lut.fill(0); }
+    const idx = quantFrame(img, gw, gh, lut, P.pal, P.N, transparent, mode);
+    const delay = Math.max(2, Math.round((i+1)*100/fps) - Math.round(i*100/fps));
+    parts.push(new Uint8Array([0x21,0xF9,4, transparent ? 0x09 : 0x08, ...u16(delay), 0, 0, 0x2C,0,0,0,0, ...u16(gw), ...u16(gh), local ? 0x87 : 0]));
+    if (local) parts.push(P.pal);
+    parts.push(new Uint8Array([8]));
+    const data8 = lzw(idx);
+    for (let p = 0; p < data8.length; p += 255){ const ch = data8.subarray(p, p + 255); parts.push(new Uint8Array([ch.length]), ch); }
+    parts.push(new Uint8Array([0]));
+    setStatus(`GIF 인코딩 ${i+1}/${n}`); await sleep(0);
+  }
+  parts.push(new Uint8Array([0x3B]));
+  const blob = new Blob(parts, {type:'image/gif'});
+  save(blob, `${$('#title').textContent}_${anim}.gif`);
+  setStatus(`GIF를 저장했습니다 (${(blob.size/1048576).toFixed(1)}MB, ${n}프레임).`);
+});
+
+/* ---------- 카메라 프레임 크기 / 위치 ---------- */
+const clampDim = v => Math.min(4096, Math.max(16, Math.round(v) || 800));
+function commitFrame(rewrite){
+  const w = +$('#camW').value, h = +$('#camH').value;
+  if (!(w >= 16 && h >= 16)) return;
+  F.w = clampDim(w); F.h = clampDim(h);
+  if (rewrite){ $('#camW').value = F.w; $('#camH').value = F.h; }
+  const key = F.w + ',' + F.h;
+  $('#preset').value = [...$('#preset').options].some(o => o.value === key) ? key : 'custom';
+  updateFrame();
+}
+$('#camW').oninput = $('#camH').oninput = () => commitFrame(false);
+$('#camW').onchange = $('#camH').onchange = () => commitFrame(true);
+$('#preset').onchange = e => {
+  if (e.target.value === 'custom') return;
+  const [w, h] = e.target.value.split(',');
+  $('#camW').value = w; $('#camH').value = h; commitFrame(true);
+};
+$('#zoomNum').oninput = e => { const v = +e.target.value; if (!(v >= 10)) return; zoom = Math.min(6, v/100); syncCam(); };
+$('#zoomNum').onchange = () => { $('#zoomNum').value = Math.round(zoom*100); };
+$('#camX').oninput = () => { panx = +$('#camX').value || 0; syncEditor(); };
+$('#camY').oninput = () => { pany = +$('#camY').value || 0; syncEditor(); };
+commitFrame(true); syncCam();
+
+/* ---------- 작업 영역 크기 / 패널 ---------- */
+function fitView(){
+  const r = $('#stage').getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  PVW = Math.min(3200, Math.max(200, Math.round(r.width*dpr)));
+  PVH = Math.min(3200, Math.max(200, Math.round(r.height*dpr)));
+  bgc.width = fgc.width = PVW; bgc.height = fgc.height = PVH;
+  applyCanvasSize(); updateFrame();
+}
+new ResizeObserver(fitView).observe($('#stage'));
+fitView();
+
+const appEl = $('.app'); let panelW = 340;
+const setPanelW = v => { panelW = Math.max(260, Math.min(760, v)); appEl.style.setProperty('--aw', panelW + 'px'); };
+$('#split').addEventListener('pointerdown', e => {
+  e.preventDefault(); const sx = e.clientX, sw = panelW, sp = $('#split'); sp.classList.add('drag');
+  const mv = ev => setPanelW(sw - (ev.clientX - sx));
+  const up = () => { sp.classList.remove('drag'); window.removeEventListener('pointermove', mv); };
+  window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up, {once:true});
+});
+$('#split').addEventListener('dblclick', () => setPanelW(340));
+$('#togglePanel').onclick = e => {
+  const c = appEl.classList.toggle('collapsed');
+  e.target.textContent = c ? '◂ 패널 펴기' : '패널 접기 ▸';
+};
+
+/* ---------- 씬 레이어 (이미지 배경 + 모델) ---------- */
+function getL(id){ return layers.find(l => l.id === id); }
+function modelL(){ return layers.find(l => l.type === 'model'); }
+function getT(l){ return l.type === 'model' ? {x:panx, y:pany, s:zoom} : {x:l.x, y:l.y, s:l.scale}; }
+function setT(l, p){
+  if (l.type === 'model'){
+    if ('x' in p) panx = p.x; if ('y' in p) pany = p.y;
+    if ('s' in p) zoom = Math.min(6, Math.max(0.1, p.s));
+  } else {
+    if ('x' in p) l.x = p.x; if ('y' in p) l.y = p.y;
+    if ('s' in p) l.scale = Math.min(20, Math.max(0.02, p.s));
+    if (l.type === 'image') layersDirty = true;
+  }
+  syncCam();
+}
+function selTarget(quiet){
+  const l = getL(sel); if (!l) return null;
+  if (l.locked || l.hidden){ if (!quiet) setStatus(l.locked ? '잠긴 레이어입니다. 🔒를 눌러 해제하세요.' : '숨겨진 레이어입니다. 👁를 눌러 보이게 하세요.'); return null; }
+  return l;
+}
+function drawImg(ctx, l, W, H, k){
+  const dw = l.w0 * l.scale * k, dh = l.h0 * l.scale * k;
+  ctx.save(); ctx.globalAlpha = l.opacity; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(l.img, W/2 + l.x*k - dw/2, H/2 + l.y*k - dh/2, dw, dh);
+  ctx.restore();
+}
+function renderLayerCanvases(){   // 미리보기: 모델 아래 레이어는 bgc, 위 레이어는 fgc
+  const k = previewK(), mi = layers.indexOf(modelL());
+  bgx.clearRect(0, 0, PVW, PVH); fgx.clearRect(0, 0, PVW, PVH);
+  layers.forEach((l, i) => { if (l.type === 'image' && !l.hidden) drawImg(i < mi ? bgx : fgx, l, PVW, PVH, k); });
+}
+function composite(){   // 내보내기: 프레임 해상도로 전체 레이어 합성
+  if (out.width !== F.w) out.width = F.w;
+  if (out.height !== F.h) out.height = F.h;
+  octx.clearRect(0, 0, F.w, F.h);
+  let src = cv;
+  if (ssN === 4){   // 4배는 2단계로 줄여 평균 품질 유지
+    tmp.width = F.w*2; tmp.height = F.h*2; tmpx.imageSmoothingEnabled = true; tmpx.imageSmoothingQuality = 'high';
+    tmpx.drawImage(cv, 0, 0, tmp.width, tmp.height); src = tmp;
+  }
+  octx.imageSmoothingEnabled = true; octx.imageSmoothingQuality = 'high';
+  for (const l of layers){
+    if (l.hidden) continue;
+    if (l.type === 'model') octx.drawImage(src, 0, 0, F.w, F.h); else drawImg(octx, l, F.w, F.h, 1);
+  }
+}
+const _o = new spine.Vector2(), _s = new spine.Vector2(), _a = [];
+function updateSelBox(){
+  const b = $('#selbox'), l = getL(sel);
+  if (!l || !layerEdit || l.hidden || exporting || (l.type === 'model' && !skel)){ b.style.display = 'none'; return; }
+  let mx, my, w, h;
+  if (l.type === 'image'){ const k = previewK(); w = l.w0*l.scale*k; h = l.h0*l.scale*k; mx = PVW/2 + l.x*k; my = PVH/2 + l.y*k; }
+  else {
+    (l.type === 'spine' ? l.skel : skel).getBounds(_o, _s, _a); const c = R.camera, z = c.zoom;
+    w = _s.x/z; h = _s.y/z; mx = PVW/2 + (_o.x + _s.x/2 - c.position.x)/z; my = PVH/2 - (_o.y + _s.y/2 - c.position.y)/z;
+  }
+  const st = b.style;
+  st.display = 'block'; st.left = (mx - w/2)/PVW*100 + '%'; st.top = (my - h/2)/PVH*100 + '%';
+  st.width = w/PVW*100 + '%'; st.height = h/PVH*100 + '%';
+  b.classList.toggle('locked', !!l.locked);
+}
+function renderList(){
+  const box = $('#layerList'); box.innerHTML = '';
+  for (let i = layers.length - 1; i >= 0; i--){
+    const l = layers[i], row = document.createElement('div');
+    row.className = 'lyr' + (l.id === sel ? ' sel' : '') + (l.hidden ? ' off' : ''); row.dataset.id = l.id;
+    let th;
+    if (l.thumb){ th = document.createElement('img'); th.src = l.thumb; th.alt = ''; } else { th = document.createElement('div'); th.textContent = l.type === 'spine' ? '+M' : 'M'; }
+    th.className = 'th';
+    const mid = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small');
+    b.textContent = l.name; sm.textContent = (l.type === 'model' ? '기본 모델' : l.type === 'spine' ? '추가 모델 · ' + (l.anim || '') : `이미지 · ${l.w0}×${l.h0}`) + ' · ' + (l.hidden ? '숨김' : l.locked ? '잠김' : '편집 가능');
+    mid.append(b, sm);
+    const lb = document.createElement('div'); lb.className = 'lb';
+    [['up','↑','위로'], ['down','↓','아래로'], ['vis', l.hidden ? '🙈' : '👁', '숨기기/보이기'], ['lock', l.locked ? '🔒' : '🔓', '잠금/해제'], ['del','🗑','삭제']].forEach(([a, t, ti]) => {
+      const bt = document.createElement('button'); bt.dataset.a = a; bt.textContent = t; bt.title = ti;
+      if ((a === 'del' && l.type === 'model') || (a === 'up' && i === layers.length - 1) || (a === 'down' && i === 0)) bt.disabled = true;
+      bt.setAttribute('aria-pressed', String((a === 'vis' && l.hidden) || (a === 'lock' && l.locked)));
+      lb.append(bt);
+    });
+    row.append(th, mid, lb); box.append(row);
+  }
+}
+function syncEditor(){
+  const l = getL(sel); if (!l) return;
+  const t = getT(l), img = l.type === 'image';
+  $('#edTitle').textContent = (img ? '이미지 레이어' : '모델 레이어') + ' 설정';
+  const set = (id, v) => { const el = $(id); if (document.activeElement !== el) el.value = v; };
+  set('#lyName', l.name); set('#lyX', Math.round(t.x)); set('#lyY', Math.round(t.y)); set('#lyS', Math.round(t.s*100));
+  $('#lyO').value = img ? Math.round(l.opacity*100) : 100; $('#lyOv').textContent = (img ? Math.round(l.opacity*100) : 100) + '%';
+  ['#lyX', '#lyY', '#lyS'].forEach(id => $(id).disabled = !!l.locked);
+  $('#lyO').disabled = !img || !!l.locked; $('#lyCover').disabled = $('#lyContain').disabled = !img || !!l.locked;
+}
+$('#layerList').addEventListener('click', e => {
+  const row = e.target.closest('.lyr'); if (!row) return;
+  const l = getL(row.dataset.id), i = layers.indexOf(l), b = e.target.closest('button');
+  if (b){
+    const a = b.dataset.a;
+    if (a === 'up' && i < layers.length - 1) [layers[i], layers[i+1]] = [layers[i+1], layers[i]];
+    else if (a === 'down' && i > 0) [layers[i], layers[i-1]] = [layers[i-1], layers[i]];
+    else if (a === 'vis') l.hidden = !l.hidden;
+    else if (a === 'lock') l.locked = !l.locked;
+    else if (a === 'del' && l.type !== 'model'){ if (l.type === 'spine') return removeExtra(l); layers.splice(i, 1); if (sel === l.id) sel = 'model'; }
+    layersDirty = true;
+  } else sel = l.id;
+  renderList(); syncEditor(); syncExtraEd();
+});
+$('#spAnim').onchange = e => { const l = getL(sel); if (l && l.type === 'spine'){ l.anim = e.target.value; l.state.setAnimation(0, l.anim, true); renderList(); } };
+$('#spSkin').onchange = e => { const l = getL(sel); if (l && l.type === 'spine'){ l.skinName = e.target.value; applyExtraSkin(l); } };
+$('#spFlip').onclick = () => { const l = getL(sel); if (l && l.type === 'spine'){ l.flip = !l.flip; syncExtraEd(); } };
+$('#spSync').onclick = () => { for (const l of extras()){ const tr = l.state.getCurrent(0); if (tr) tr.trackTime = 0; } if (track) track.trackTime = 0; };
+$('#lyName').oninput = () => { const l = getL(sel); if (l){ l.name = $('#lyName').value; renderList(); } };
+$('#lyX').oninput = () => { const l = getL(sel); if (l && !l.locked) setT(l, {x: +$('#lyX').value || 0}); };
+$('#lyY').oninput = () => { const l = getL(sel); if (l && !l.locked) setT(l, {y: +$('#lyY').value || 0}); };
+$('#lyS').oninput = () => { const l = getL(sel), v = +$('#lyS').value; if (l && !l.locked && v >= 2) setT(l, {s: v/100}); };
+$('#lyS').onchange = syncEditor;
+$('#lyO').oninput = () => { const l = getL(sel); if (l && l.type === 'image'){ l.opacity = $('#lyO').value/100; layersDirty = true; syncEditor(); } };
+const fitImg = how => { const l = getL(sel); if (!l || l.type !== 'image') return; setT(l, {x:0, y:0, s: how(F.w/l.w0, F.h/l.h0)}); };
+$('#lyCover').onclick = () => fitImg(Math.max);
+$('#lyContain').onclick = () => fitImg(Math.min);
+$('#layerEdit').onchange = e => { layerEdit = e.target.checked; cv.style.cursor = ''; };
+$('#mip').onchange = applyMip;
+$('#showFrame').onchange = e => { $('#frame').style.visibility = e.target.checked ? '' : 'hidden'; };
+
+const loadPlain = async f => {
+  try { return await createImageBitmap(f); } catch (e) { /* 아래 방식으로 재시도 */ }
+  const url = await dataUrl(f);
+  return await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('읽기 실패')); i.src = url; });
+};
+async function addImages(files){
+  if (!skel) return setStatus('먼저 Spine 파일을 불러와 주세요.');
+  let n = 0;
+  for (const f of files){
+    try {
+      const img = await loadPlain(f), w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+      const th = document.createElement('canvas'), r = Math.min(96/w0, 96/h0);
+      th.width = Math.max(1, Math.round(w0*r)); th.height = Math.max(1, Math.round(h0*r));
+      th.getContext('2d').drawImage(img, 0, 0, th.width, th.height);
+      const l = {id:'img' + (++imgSeq), type:'image', name:f.name.replace(/\.[^.]+$/, ''), img, w0, h0, x:0, y:0,
+        scale:Math.max(F.w/w0, F.h/h0), opacity:1, hidden:false, locked:false, thumb:th.toDataURL()};
+      layers.splice(layers.indexOf(modelL()), 0, l);   // 모델 바로 아래(배경)에 추가
+      sel = l.id; n++;
+    } catch (e) { console.error(e); setStatus('이미지를 읽을 수 없습니다: ' + f.name); }
+  }
+  if (n){ layersDirty = true; renderList(); syncEditor(); setStatus(`이미지 레이어 ${n}개를 추가했습니다.`); }
+}
+$('#addImg').onclick = () => $('#imgIn').click();
+$('#imgIn').onchange = e => { addImages([...e.target.files]); e.target.value = ''; };
+
+// 선택 박스 모서리 핸들로 크기 조절
+const hd = $('#selbox .h'); let rs = null;
+hd.addEventListener('pointerdown', e => {
+  e.stopPropagation(); e.preventDefault();
+  const l = selTarget(); if (!l || !layerEdit) return;
+  const r = $('#selbox').getBoundingClientRect(), c = {x:(r.left + r.right)/2, y:(r.top + r.bottom)/2};
+  rs = {l, c, d0:Math.hypot(e.clientX - c.x, e.clientY - c.y) || 1, s0:getT(l).s};
+  hd.setPointerCapture(e.pointerId);
+});
+hd.addEventListener('pointermove', e => { if (rs) setT(rs.l, {s: rs.s0 * Math.hypot(e.clientX - rs.c.x, e.clientY - rs.c.y) / rs.d0}); });
+hd.addEventListener('pointerup', () => { rs = null; });
+renderList(); syncEditor();
+
+/* ---------- 게임 라이브러리 (manifest.json 기반) ---------- */
+const LIB = {items:[], group:'apostle', sub:'', q:'', onlyNew:false, cur:null, seen:0, ver:null, view:'all', vf:''};
+// 분류: journey.927927927.xyz Studio 기준 (+ 정적 배경)
+const GROUPS = [['apostle','사도'], ['battle','전투'], ['aside','어사이드'], ['mini','Mini'], ['npc','NPC'], ['pet','펫'],
+  ['monster','몬스터'], ['boss','보스'], ['furniture','가구'], ['other','기타'], ['background','배경']];
+const GLABEL = Object.fromEntries(GROUPS);
+const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+const AB = (window.ASSET_BASE || '').replace(/\/?$/, (window.ASSET_BASE || '') ? '/' : '');   // 파일 서버 주소
+const isLocalServer = !AB;
+const itemBase = it => AB + (it.group === 'background' ? 'assets/bg/' + encPath(it.cat) + '/' : 'assets/spine/' + encPath(it.cat) + '/' + encodeURIComponent(it.name) + '/');
+const libSet = t => { $('#libMsg').textContent = t || ''; };
+try { LIB.seen = +localStorage.getItem('libSeen') || 0; } catch (e) {}
+
+async function libLoad(){
+  try {
+    const r = await fetch(AB + 'manifest.json?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    const m = await r.json();
+    const changed = LIB.ver && LIB.ver !== m.version;
+    if (LIB.ver === m.version && LIB.gen === m.generated && LIB.items.length) return false;   // 바뀐 게 없으면 목록을 다시 그리지 않음
+    LIB.items = m.items; LIB.ver = m.version; LIB.gen = m.generated;
+    libRender();
+    // 이 PC 에서 열었을 때: 썸네일이 없는 모델(새로 들어온 것 포함)을 뒤에서 천천히 만들어 저장
+    if (isLocalPage) setTimeout(async () => {
+      // 이미 만들어 둔 썸네일은 건너뜀 (manifest 에 아직 표시 안 됐어도 파일이 있으면 OK)
+      const cand = LIB.items.filter(i => i.group !== 'background' && !i.thumb), todo = [];
+      for (let i = 0; i < cand.length; i += 64){
+        const part = cand.slice(i, i + 64);
+        const st = await Promise.all(part.map(it => fetch(spThumb(it), {method: 'HEAD'}).then(r => r.ok).catch(() => false)));
+        part.forEach((it, j) => { if (st[j]) it.thumb = true; else todo.push(it); });
+      }
+      if (!todo.length) return;
+      await bakeThumbs(todo, (n, all) => { $('#libMsg').textContent = `목록 썸네일 만드는 중… ${n}/${all} (보고 있는 분류부터 만듭니다)`; });
+      const nf = (bakeThumbs.failed || []).length;
+      $('#libMsg').textContent = nf ? `목록 썸네일 완료 (만들 수 없는 모델 ${nf}개)` : '목록 썸네일을 모두 만들었습니다.';
+    }, 1500);
+    if (changed) libSet('새 파일이 반영되었습니다.');
+    else if (!m.items.length) libSet('아직 추출된 파일이 없습니다. 위 버튼으로 게임에서 가져오세요.');
+    return changed;
+  } catch (e) {
+    libSet('manifest.json 을 읽을 수 없습니다. start.bat 으로 실행했는지, sync 를 한 번 돌렸는지 확인하세요.');
+    return false;
+  }
+}
+function libRender(){
+  const gEl = $('#libGroups');
+  gEl.innerHTML = '';
+  for (const [k, label] of GROUPS){
+    const n = LIB.items.filter(i => i.group === k).length;
+    if (!n && k !== LIB.group) continue;
+    const b = document.createElement('button');
+    b.textContent = `${label} ${n}`; b.setAttribute('aria-pressed', k === LIB.group);
+    b.onclick = () => { LIB.group = k; LIB.sub = ''; libRender(); };
+    gEl.appendChild(b);
+  }
+  const inGroup = LIB.items.filter(i => i.group === LIB.group);
+  const subs = [...new Set(inGroup.map(i => i.sub))].sort();
+  const sEl = $('#libSub');
+  sEl.innerHTML = '';
+  sEl.add(new Option('전체 (' + inGroup.length + ')', ''));
+  subs.forEach(s => sEl.add(new Option(s + ' (' + inGroup.filter(i => i.sub === s).length + ')', s)));
+  sEl.value = LIB.sub; sEl.style.display = subs.length > 1 ? '' : 'none';
+  const newN = LIB.items.filter(i => i.added && i.added > LIB.seen).length;
+  $('#libNewN').textContent = newN ? `(${newN}개)` : '';
+  const q = LIB.q.trim().toLowerCase();
+  let list = inGroup.filter(i => (!LIB.sub || i.sub === LIB.sub) && (!q || ((i.label || '') + ' ' + i.name + ' ' + i.cat).toLowerCase().includes(q)) && (!LIB.onlyNew || (i.added && i.added > LIB.seen)));
+  list.sort((a, b) => (a.label || a.name).localeCompare(b.label || b.name, 'ko'));
+  $('#libCount').textContent = `${list.length}개` + (list.length > 300 ? ' (처음 300개만 표시 - 검색으로 좁혀 보세요)' : '');
+  const L = $('#libList');
+  L.innerHTML = '';
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // 사도/전투: 캐릭터 하나에 스킨들을 묶어서 표시
+  if (LIB.group === 'apostle' || LIB.group === 'battle'){
+    const byChar = new Map();
+    for (const it of inGroup) { const k = it.char || it.name; if (!byChar.has(k)) byChar.set(k, []); byChar.get(k).push(it); }
+    let chars = [...byChar.entries()].map(([k, v]) => ({k, v: v.sort((a, b) => (a.skinNo || 0) - (b.skinNo || 0)), label: v[0].charLabel || k}));
+    chars = chars.filter(c => (!LIB.onlyNew || c.v.some(i => i.added && i.added > LIB.seen)) &&
+      (!q || c.v.some(i => ((i.label || '') + ' ' + (i.charLabel || '') + ' ' + i.name + ' ' + (i.skin || '')).toLowerCase().includes(q))));
+    chars.sort((a, b) => a.label.localeCompare(b.label, 'ko'));
+    // 보기 방식: 전체 / 종족별 / 성급별 / 역할별 (나무위키 분류)
+    const meta = c => c.v[0];
+    const VIEW = {race: {key: 'race', order: ['요정','수인','엘프','정령','유령','용족','마녀','미스틱'], name: v => v},
+                  star: {key: 'star', order: [3, 2, 1], name: v => v + '성'},
+                  role: {key: 'role', order: ['탱커','딜러','서포터'], name: v => v}};
+    const vw = VIEW[LIB.view];
+    const vbar = $('#libView'); vbar.style.display = '';
+    vbar.innerHTML = '';
+    [['all','전체'], ['race','종족별'], ['star','성급별'], ['role','역할별']].forEach(([k, t]) => {
+      const b = document.createElement('button'); b.textContent = t; b.setAttribute('aria-pressed', LIB.view === k);
+      b.onclick = () => { LIB.view = k; LIB.vf = ''; libRender(); }; vbar.appendChild(b);
+    });
+    if (vw){
+      const chips = document.createElement('div'); chips.className = 'skins'; chips.style.width = '100%';
+      [''].concat(vw.order).forEach(v => {
+        const n = v === '' ? chars.length : chars.filter(c => meta(c)[vw.key] === v).length;
+        if (v !== '' && !n) return;
+        const b = document.createElement('button'); b.textContent = (v === '' ? '모두' : vw.name(v)) + ' ' + n;
+        b.setAttribute('aria-pressed', String(LIB.vf === v)); b.onclick = () => { LIB.vf = v; libRender(); };
+        chips.appendChild(b);
+      });
+      vbar.appendChild(chips);
+      if (LIB.vf !== '') chars = chars.filter(c => meta(c)[vw.key] === LIB.vf);
+    }
+    $('#libCount').textContent = `캐릭터 ${chars.length}명 · 스킨 포함 ${chars.reduce((a, c) => a + c.v.length, 0)}개`;
+    // 고른 캐릭터: 위쪽 상세 칸(스킨 선택, 추가/빼기)
+    const curC = chars.find(c => c.k === LIB.curChar);
+    if (curC) L.appendChild(charCard(curC, true));
+    // 묶음별 타일
+    const sections = vw ? vw.order.map(v => [vw.name(v), chars.filter(c => meta(c)[vw.key] === v)]).concat([['기타', chars.filter(c => !vw.order.includes(meta(c)[vw.key]))]])
+                        : [['', chars]];
+    for (const [title, cs] of sections){
+      if (!cs.length) continue;
+      if (title){ const h = document.createElement('div'); h.className = 'sec'; h.textContent = `${title} · ${cs.length}명`; L.appendChild(h); }
+      const g = document.createElement('div'); g.className = 'grid';
+      for (const c of cs){
+        const m = meta(c), t = document.createElement('button');
+        t.className = 'tile' + (c.k === LIB.curChar ? ' cur' : '');
+        const nOn = c.v.reduce((a, i) => a + onScreen(i).length, 0);
+        t.title = `${c.label}${m.race ? ` · ${m.race} · ${m.star}성 · ${m.role}` : ''}`;
+        t.innerHTML = thumbImg(c.v[0]) +
+          `<span class="tn">${esc(c.label)}</span>` + (m.star ? `<span class="ts">${'★'.repeat(m.star)}</span>` : '') + (nOn ? `<span class="on">${nOn}</span>` : '');
+        t.onclick = () => { LIB.curChar = c.k; libOpen(c.v[0]); L.scrollTop = 0; };
+        g.appendChild(t);
+      }
+      L.appendChild(g);
+    }
+    return;
+  }
+  $('#libView').style.display = 'none';
+  for (const it of list.slice(0, 300)){
+    const d = document.createElement('div');
+    d.className = 'li' + (LIB.cur === it ? ' cur' : '') + (it.version && !/^4\.1/.test(it.version) ? ' bad' : '');
+    const isNew = it.added && it.added > LIB.seen;
+    const thumb = it.group === 'background' ? `<img loading="lazy" decoding="async" src="${bgThumb(it)}" alt="">`
+      : thumbImg(it);
+    d.innerHTML = `${thumb}<div style="min-width:0;flex:1"><b>${esc(it.label || it.name)}</b>${isNew ? '<span class="nw">NEW</span>' : ''}<small>${esc(it.name)}${it.sub ? ' · ' + esc(it.sub) : ''}${it.version && !/^4\.1/.test(it.version) ? ' · Spine ' + it.version + ' (미지원)' : ''}</small></div>` +
+      (it.group !== 'background'
+        ? (onScreen(it).length ? `<button class="rm" title="화면에서 빼기">−</button>` : '') + '<button class="add" title="지금 화면에 함께 추가">＋</button>'
+        : '');
+    d.onclick = e => { if (e.target.closest('.add')) libAdd(it); else if (e.target.closest('.rm')) libRemove(it); else libOpen(it); };
+    L.appendChild(d);
+  }
+}
+// 고른 사도의 상세 칸: 이름·종족·성급·역할 + 스킨 버튼 + 화면 추가/빼기
+function charCard(c){
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const m = c.v[0], d = document.createElement('div');
+  d.className = 'li cur card';
+  const tags = m.race ? `${m.race} · ${'★'.repeat(m.star || 0)} ${m.star}성 · ${m.role} · ${m.pos || ''}` : '';
+  d.innerHTML = `<div style="display:flex;gap:8px;align-items:center">${thumbImg(m)}<div style="min-width:0"><b>${esc(c.label)}</b><small>${esc(tags)}${tags ? ' · ' : ''}스킨 ${c.v.length - 1}개</small></div></div>`;
+  const box = document.createElement('div'); box.className = 'skins';
+  for (const it of c.v){
+    const b = document.createElement('button');
+    b.textContent = it.skin || '기본'; b.title = it.name;
+    b.setAttribute('aria-pressed', LIB.cur === it);
+    if (it.added && it.added > LIB.seen) b.textContent += ' •';
+    b.onclick = e => { e.stopPropagation(); libOpen(it); };
+    box.appendChild(b);
+  }
+  const add = document.createElement('button');
+  add.textContent = '＋ 화면에 추가'; add.className = 'primary'; add.title = '선택한 스킨을 지금 화면에 함께 추가';
+  add.onclick = e => { e.stopPropagation(); libAdd(LIB.cur && c.v.includes(LIB.cur) ? LIB.cur : c.v[0]); };
+  box.appendChild(add);
+  const mine = c.v.filter(i => onScreen(i).length);
+  if (mine.length){
+    const rm = document.createElement('button');
+    rm.textContent = '− 화면에서 빼기'; rm.title = '이 캐릭터로 추가한 모델을 하나 뺌';
+    rm.onclick = e => { e.stopPropagation(); const cur = LIB.cur && mine.includes(LIB.cur) ? LIB.cur : mine[mine.length - 1]; libRemove(cur); };
+    box.appendChild(rm);
+  }
+  d.appendChild(box);
+  return d;
+}
+async function getFile(url, name, type){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(name + ' (' + r.status + ')');
+  return new File([await r.blob()], name, {type: type || ''});
+}
+// skel/atlas/텍스처(원본 PNG)를 동시에 받기
+async function fetchItemFiles(it){
+  const base = itemBase(it), v = '?v=' + encodeURIComponent(it.v || it.sig || '0');
+  const jobs = [getFile(base + encodeURIComponent(it.name + '.skel') + v, it.name + '.skel'),
+                getFile(base + encodeURIComponent(it.name + '.atlas') + v, it.name + '.atlas')];
+  for (const p of it.pngs) jobs.push(getFile(base + encodeURIComponent(p) + v, p, 'image/png'));
+  return Promise.all(jobs);
+}
+const itemKey = it => it.group + '|' + it.cat + '|' + it.name;
+const onScreen = it => extras().filter(l => l.key === itemKey(it));
+async function libAdd(it){
+  if (!skel) return libOpen(it);   // 아직 모델이 없으면 기본 모델로
+  try {
+    setStatus('추가하는 중… ' + (it.label || it.name));
+    await addExtraModel(await fetchItemFiles(it), it.label || it.name, itemKey(it));
+  } catch (e) { setStatus('추가 실패: ' + e.message); }
+  libRender(); renderOnScreen();
+}
+function libRemove(it){   // 같은 항목을 여러 번 넣었으면 마지막 것부터 하나씩 뺌
+  const xs = onScreen(it); if (!xs.length) return;
+  removeExtra(xs[xs.length - 1]);
+  setStatus(`"${it.label || it.name}" 을(를) 화면에서 뺐습니다.`);
+}
+// 라이브러리 위쪽: 지금 화면에 올라간 추가 모델 목록 (✕ 로 빼기)
+function renderOnScreen(){
+  const box = $('#onScreen'), xs = extras();
+  box.style.display = xs.length ? '' : 'none';
+  box.innerHTML = '';
+  if (!xs.length) return;
+  const head = document.createElement('div'); head.className = 'row';
+  head.innerHTML = `<b style="font-size:12px">화면에 추가한 모델 ${xs.length}개</b>`;
+  const all = document.createElement('button'); all.textContent = '모두 빼기'; all.className = 'mini';
+  all.onclick = () => { [...xs].forEach(removeExtra); setStatus('추가한 모델을 모두 뺐습니다.'); };
+  head.appendChild(all); box.appendChild(head);
+  const wrap = document.createElement('div'); wrap.className = 'skins';
+  for (const l of xs){
+    const b = document.createElement('button');
+    b.textContent = l.name + ' ✕'; b.title = '화면에서 빼기';
+    b.onclick = () => removeExtra(l);
+    wrap.appendChild(b);
+  }
+  box.appendChild(wrap);
+}
+/* ---------- 목록 썸네일 (모델을 작게 렌더해 서버에 저장) ---------- */
+const THUMB_REV = 'idle1n';   // 썸네일 만드는 방식이 바뀌면 이 값을 바꿔 브라우저 캐시를 새로 받게 함
+const spThumb = it => AB + 'assets/thumbs/spine/' + encPath(it.cat) + '/' + encodeURIComponent(it.name + '.png') + '?v=' + (it.v || 0) + '_' + THUMB_REV + (it.tv ? '_' + it.tv : '');
+// 썸네일 <img>: 아직 없으면 빈 칸으로 두었다가, 만들어지면(또는 주기적으로) 다시 시도
+const tkey = it => it.cat + '|' + it.name;
+const thumbImg = it => `<img class="th-img" data-tk="${tkey(it).replace(/"/g, '&quot;')}" loading="lazy" decoding="async" src="${spThumb(it)}" alt="" onerror="this.classList.add('miss')" onload="this.classList.remove('miss')">`;
+function refreshThumb(it){
+  document.querySelectorAll('img.th-img').forEach(im => { if (im.dataset.tk === tkey(it)) im.src = spThumb(it); });
+}
+setInterval(() => {   // 없던 썸네일은 1분마다 다시 확인 (다른 기기에서 볼 때 포함)
+  const bust = Date.now();
+  document.querySelectorAll('img.th-img.miss').forEach(im => { im.src = im.src.replace(/([?&])r=\d+&?/, '$1') + (im.src.includes('?') ? '&' : '?') + 'r=' + bust; });
+}, 60000);
+let thumbGL = null;
+function thumbRenderer(){
+  if (thumbGL) return thumbGL;
+  const c = document.createElement('canvas'); c.width = c.height = 160;
+  const ctx = new spine.ManagedWebGLRenderingContext(c, {alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true});
+  return thumbGL = {c, ctx, R: new spine.SceneRenderer(c, ctx)};
+}
+let thumbLock = Promise.resolve();
+async function prepThumb(it){   // 다운로드 + 디코딩 (여러 개 동시에)
+  const files = await fetchItemFiles(it);
+  const sk = files.find(x => /\.skel$/i.test(x.name)), at = files.find(x => /\.atlas$/i.test(x.name));
+  const atlas = new spine.TextureAtlas(await at.text());
+  const bmps = await Promise.all(atlas.pages.map(p => {
+    const f = files.find(x => x.name === p.name) || files.find(x => x.name.toLowerCase() === p.name.toLowerCase());
+    // 원본 크기 그대로 (줄여서 올리면 부품 위치가 어긋나 깨짐)
+    return createImageBitmap(f, {premultiplyAlpha: 'none'});
+  }));
+  return {atlas, bmps, skelBytes: new Uint8Array(await sk.arrayBuffer())};
+}
+async function makeThumb(it, prepared){
+  const P = prepared || await prepThumb(it);
+  let release; const prev = thumbLock; thumbLock = new Promise(r => release = r); await prev;   // 렌더는 한 번에 하나
+  const T = thumbRenderer(), gl2 = T.ctx.gl, atlas = P.atlas, texs = [];
+  try {
+    atlas.pages.forEach((p, i) => { const t = new spine.GLTexture(T.ctx, P.bmps[i], false); p.setTexture(t); texs.push(t); });
+    const d = new spine.SkeletonBinary(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(P.skelBytes);
+    const s = new spine.Skeleton(d), st = new spine.AnimationState(new spine.AnimationStateData(d));
+    const p = pickDefaults(d);
+    const normal = d.skins.find(k => k.name.toLowerCase() === 'normal');
+    const idle1 = d.animations.find(a => a.name === 'Idle_1') || d.animations.find(a => a.name.toLowerCase() === 'idle_1');
+    // 시도 순서: ① Idle_1 첫 프레임 + Normal  ② 자동 동작 + 자동 스킨  ③ 기본 자세 + 모든 스킨 중 가장 큰 것  ④ 기본 자세
+    const tries = [[idle1 && idle1.name || p.anim, normal ? normal.name : p.skin, 0], [p.anim, p.skin, 0], [null, p.skin, 0], [null, '', 0]];
+    // ⑤ 이펙트·소환물처럼 첫 프레임엔 안 보이는 것: 동작 중간 장면에서 찾기
+    for (const a of d.animations.slice(0, 12)) for (const f of [0.25, 0.5, 0.75, 0.1, 0.9]) tries.push([a.name, p.skin, a.duration * f]);
+    const px = new Uint8Array(T.c.width * T.c.height * 4);
+    for (const [anim, skinName, at] of tries){
+      const skin = new spine.Skin('t');
+      [d.defaultSkin && d.defaultSkin.name, skinName].filter(Boolean).forEach(n => { const k = d.findSkin(n); if (k) skin.addSkin(k); });
+      s.setSkin(skin); s.setSlotsToSetupPose(); s.setToSetupPose();
+      st.clearTracks();
+      if (anim){ const tr = st.setAnimation(0, anim, false); tr.trackTime = at || 0; }
+      st.update(0); st.apply(s); s.updateWorldTransform();
+      const o = new spine.Vector2(), z = new spine.Vector2(); s.getBounds(o, z, []);
+      if (!isFinite(z.x) || !isFinite(z.y) || z.x <= 0 || z.y <= 0) continue;
+      const cam = T.R.camera, size = Math.max(z.x, z.y, 1) * 1.08;
+      cam.position.set(o.x + z.x / 2, o.y + z.y / 2, 0); cam.zoom = size / T.c.width; cam.setViewport(T.c.width, T.c.height); cam.update();
+      gl2.viewport(0, 0, T.c.width, T.c.height); gl2.clearColor(0, 0, 0, 0); gl2.clear(gl2.COLOR_BUFFER_BIT);
+      T.R.begin(); T.R.drawSkeleton(s, atlas.pages.some(pg => pg.pma)); T.R.end();
+      // 실제로 그려진 픽셀이 있는지 확인 (빈 그림이면 다음 방법으로)
+      gl2.readPixels(0, 0, T.c.width, T.c.height, gl2.RGBA, gl2.UNSIGNED_BYTE, px);
+      let solid = 0; for (let i = 3; i < px.length; i += 16) if (px[i] > 8 && ++solid > 20) break;
+      if (solid > 20) return await new Promise(r => T.c.toBlob(r, 'image/png'));
+    }
+    // ⑥ 마지막: 텍스처에서 가장 큰 부품 그림을 그대로 썸네일로
+    let best = null;
+    for (const pg of atlas.pages) for (const rg of pg.regions || []) if (!best || rg.width * rg.height > best.width * best.height) best = rg;
+    if (!best) for (const rg of atlas.regions || []) if (!best || rg.width * rg.height > best.width * best.height) best = rg;
+    if (best){
+      const img = P.bmps[atlas.pages.indexOf(best.page)];
+      const c2 = document.createElement('canvas'); c2.width = c2.height = T.c.width;
+      const x2 = c2.getContext('2d'), iw = img.width, ih = img.height;
+      const sx = best.u * iw, sy = best.v * ih, sw = (best.u2 - best.u) * iw, sh = (best.v2 - best.v) * ih;
+      const k = Math.min(c2.width / sw, c2.height / sh) * 0.92;
+      x2.drawImage(img, sx, sy, sw, sh, (c2.width - sw * k) / 2, (c2.height - sh * k) / 2, sw * k, sh * k);
+      return await new Promise(r => c2.toBlob(r, 'image/png'));
+    }
+    throw new Error('그릴 수 있는 모습이 없음');
+  } finally { texs.forEach(t => { try { t.dispose(); } catch (e) {} }); P.bmps.forEach(b => { try { b.close(); } catch (e) {} }); release(); }
+}
+const isLocalPage = /^(127\.0\.0\.1|localhost)$/.test(location.hostname) && isLocalServer;
+let baking = false;
+async function bakeThumbs(list, onProgress){   // 이 PC 에서 열었을 때만 서버에 저장 가능
+  if (baking || !isLocalPage) return 0;
+  baking = true; let n = 0, done = 0;
+  // 펫·사도·전투부터
+  const pri = {pet: 0, apostle: 1, mini: 2, battle: 3, monster: 4, boss: 5, npc: 6, aside: 7, furniture: 8, other: 9};
+  const q = [...list].sort((a, b) => (pri[a.group] ?? 9) - (pri[b.group] ?? 9));
+  const failed = [];
+  // 지금 보고 있는 분류를 먼저 만들기
+  const next = () => { const i = q.findIndex(x => x.group === LIB.group); return i >= 0 ? q.splice(i, 1)[0] : q.shift(); };
+  const one = async it => {
+    const blob = await makeThumb(it);
+    if (!blob || blob.size < 200) throw new Error('빈 이미지');
+    const r = await fetch('/api/thumb?cat=' + encodeURIComponent(it.cat) + '&name=' + encodeURIComponent(it.name), {method: 'POST', body: blob});
+    if (!r.ok) throw new Error('저장 실패 ' + r.status);
+    it.thumb = true; it.tv = Date.now(); n++; refreshThumb(it);
+  };
+  const worker = async () => {
+    for (let it; (it = next()); ){
+      try { await one(it); } catch (e) { failed.push(it); }
+      done++; if (onProgress) onProgress(done, list.length);
+    }
+  };
+  try {
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    // 실패한 것은 한 번 더 (한 개씩)
+    const again = failed.splice(0);
+    for (const it of again){ try { await one(it); } catch (e) { failed.push(it); console.warn('thumb 실패', it.cat, it.name, e.message); } }
+  } finally { baking = false; }
+  bakeThumbs.failed = failed;
+  return n;
+}
+const bgThumb = it => it.thumb ? AB + 'assets/thumbs/' + encPath(it.cat) + '/' + encodeURIComponent(it.name + '.webp') + '?v=' + (it.v || 0)
+                               : itemBase(it) + encodeURIComponent(it.pngs[0]);
+async function libOpen(it){
+  LIB.cur = it;
+  try {
+    const base = itemBase(it);
+    if (it.group === 'background'){
+      const url = base + encodeURIComponent(it.pngs[0]);
+      $('#bgPrevImg').src = url; $('#bgDl').href = url; $('#bgDl').download = it.pngs[0];
+      $('#bgPrev').classList.add('on');
+      return;
+    }
+    setStatus('불러오는 중… ' + (it.label || it.name));
+    await loadFiles(await fetchItemFiles(it));
+    $('#title').textContent = it.label || it.name;
+    modelL().name = it.label || it.name; renderList();
+  } catch (e) { setStatus('라이브러리 로드 실패: ' + e.message); }
+  libRender();
+}
+$('#bgClose').onclick = () => $('#bgPrev').classList.remove('on');
+$('#bgAdd').onclick = async () => {
+  const it = LIB.cur; if (!it) return;
+  const f = await getFile(itemBase(it) + encodeURIComponent(it.pngs[0]), it.pngs[0], 'image/png');
+  await addImages([f]); $('#bgPrev').classList.remove('on');
+};
+$('#libSub').onchange = e => { LIB.sub = e.target.value; libRender(); };
+let libQT = 0;
+$('#libQ').oninput = e => { clearTimeout(libQT); libQT = setTimeout(() => { LIB.q = e.target.value; libRender(); }, 200); };
+$('#libNew').onchange = e => { LIB.onlyNew = e.target.checked; libRender(); };
+$('#libReload').onclick = async () => { await libLoad(); libSet('목록을 새로 읽었습니다.'); };
+$('#libSync').onclick = async () => {
+  const btn = $('#libSync'); btn.disabled = true;
+  try {
+    const before = Date.now() / 1000 - 5;
+    const r = await fetch('/api/sync', {method:'POST'});
+    if (!r.ok) throw new Error('서버 응답 ' + r.status);
+    for (;;){
+      await sleep(1500);
+      const s = await (await fetch('/api/status', {cache:'no-store'})).json();
+      libSet((s.log[s.log.length - 1] || '동기화 중…'));
+      if (!s.running){
+        await libLoad();
+        libSet(s.code === 0 ? '동기화 완료. ' + (s.log[s.log.length - 1] || '') : '동기화 실패: ' + (s.log[s.log.length - 1] || ''));
+        break;
+      }
+    }
+  } catch (e) {
+    libSet('서버에 연결할 수 없습니다. start.bat 으로 열어야 이 버튼이 동작합니다. (' + e.message + ')');
+  } finally { btn.disabled = false; }
+};
+// 새 항목은 이 탭을 벗어나거나 15초 이상 둔 뒤 '확인한 것'으로 처리
+window.addEventListener('beforeunload', () => { try { if (LIB.gen) localStorage.setItem('libSeen', LIB.gen); } catch (e) {} });
+// 게임 쪽 변경이 manifest 로 반영되면 자동으로 목록 갱신 (30초마다 확인)
+setInterval(() => { if (!document.hidden) { libLoad(); libAuto(); } }, 30000);
+// 자동 감시 상태 표시
+async function libAuto(){
+  if (!isLocalServer){   // 웹(GitHub Pages) 버전: 서버 기능 없음
+    $('#libSync').style.display = 'none';
+    $('#libAuto').textContent = '웹 버전 · 게임이 업데이트되면 PC 에서 자동으로 반영되어 올라옵니다.';
+    return;
+  }
+  try {
+    const s = await (await fetch('/api/status', {cache:'no-store'})).json();
+    const t = x => x ? new Date(x * 1000).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+    $('#libAuto').textContent = `자동 확인: ${s.watch_minutes}분마다 (MuMu 켜져 있을 때) · 마지막 확인 ${t(s.last_check)}` +
+      (s.running ? ' · 지금 가져오는 중…' : '') + (s.last_change ? ` · 마지막 반영 ${t(s.last_change)}` : '') +
+      (s.public_url && location.origin !== s.public_url ? ` · 인터넷 주소: ${s.public_url}` : '');
+  } catch (e) { $('#libAuto').textContent = ''; }
+}
+libLoad(); libAuto();
+</script>
+</body>
+</html>
