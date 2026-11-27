@@ -392,7 +392,11 @@ async function loadFiles(list){
     setStatus('');
   } catch (e) {
     console.error(e);
-    setStatus('불러오기 실패: ' + e.message + ' (런타임은 Spine 4.1 데이터만 지원합니다)');
+    const m = String(e.message || e);
+    // 버전 문제일 때만 버전 안내 (이 사이트는 Spine 4.1 런타임, 게임 데이터도 4.1)
+    const hint = /Region not found/i.test(m) ? ' (이 모델의 skel 과 atlas 짝이 맞지 않습니다 — 게임 업데이트로 바뀐 모델일 수 있음)'
+      : /version|Unsupported|String index|Invalid/i.test(m) ? ' (Spine 4.1 데이터가 아닐 수 있습니다)' : '';
+    setStatus('불러오기 실패: ' + m + hint);
   }
 }
 
