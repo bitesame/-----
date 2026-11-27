@@ -92,6 +92,10 @@ img.th-img{background:var(--bg)}
 #libList .sec{font-weight:700;font-size:13px;margin:8px 0 2px;color:var(--leaf-d)}
 #libList .card{position:sticky;top:0;z-index:2;flex-direction:column;align-items:stretch;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 #libView{align-items:center}
+.na{opacity:.55}
+.nab{background:#8a9a92;color:#fff;border-radius:8px;padding:0 6px;font-size:10px;margin-left:6px;white-space:nowrap}
+#libList .tile .nab{position:absolute;left:2px;top:2px;margin:0;font-size:9px}
+.skins button.na{border-style:dashed;color:#8a9a92}
 .li .nothumb{width:40px;height:40px;border-radius:6px;background:var(--bg);flex:none;display:block}
 .li .add,.li .rm{flex:none;width:34px;height:34px;padding:0;border-radius:50%;font-weight:700}
 .li .rm{color:#c0392b;border-color:#f0c4bd}
@@ -1478,7 +1482,7 @@ async function libLoad(){
     // 이 PC 에서 열었을 때: 썸네일이 없는 모델(새로 들어온 것 포함)을 뒤에서 천천히 만들어 저장
     if (isLocalPage) setTimeout(async () => {
       // 이미 만들어 둔 썸네일은 건너뜀 (manifest 에 아직 표시 안 됐어도 파일이 있으면 OK)
-      const cand = LIB.items.filter(i => i.group !== 'background' && !i.thumb), todo = [];
+      const cand = LIB.items.filter(i => i.group !== 'background' && !i.thumb && !i.unavailable), todo = [];
       for (let i = 0; i < cand.length; i += 64){
         const part = cand.slice(i, i + 64);
         const st = await Promise.all(part.map(it => fetch(spThumb(it), {method: 'HEAD'}).then(r => r.ok).catch(() => false)));
@@ -1569,11 +1573,12 @@ function libRender(){
       const g = document.createElement('div'); g.className = 'grid';
       for (const c of cs){
         const m = meta(c), t = document.createElement('button');
-        t.className = 'tile' + (c.k === LIB.curChar ? ' cur' : '');
+        const allNA = c.v.every(i => i.unavailable);
+        t.className = 'tile' + (c.k === LIB.curChar ? ' cur' : '') + (allNA ? ' na' : '');
         const nOn = c.v.reduce((a, i) => a + onScreen(i).length, 0);
         t.title = `${c.label}${m.race ? ` · ${m.race} · ${m.star}성 · ${m.role}` : ''}`;
         t.innerHTML = thumbImg(c.v[0]) +
-          `<span class="tn">${esc(c.label)}</span>` + (m.star ? `<span class="ts">${'★'.repeat(m.star)}</span>` : '') + (nOn ? `<span class="on">${nOn}</span>` : '');
+          `<span class="tn">${esc(c.label)}</span>` + (m.star ? `<span class="ts">${'★'.repeat(m.star)}</span>` : '') + (nOn ? `<span class="on">${nOn}</span>` : '') + (allNA ? '<span class="nab">볼 수 없음</span>' : '');
         t.onclick = () => { LIB.curChar = c.k; libOpen(c.v[0]); L.scrollTop = 0; };
         g.appendChild(t);
       }
@@ -1584,11 +1589,11 @@ function libRender(){
   $('#libView').style.display = 'none';
   for (const it of list.slice(0, 300)){
     const d = document.createElement('div');
-    d.className = 'li' + (LIB.cur === it ? ' cur' : '') + (it.version && !/^4\.1/.test(it.version) ? ' bad' : '');
+    d.className = 'li' + (LIB.cur === it ? ' cur' : '') + (it.version && !/^4\.1/.test(it.version) ? ' bad' : '') + (it.unavailable ? ' na' : '');
     const isNew = it.added && it.added > LIB.seen;
     const thumb = it.group === 'background' ? `<img loading="lazy" decoding="async" src="${bgThumb(it)}" alt="">`
       : thumbImg(it);
-    d.innerHTML = `${thumb}<div style="min-width:0;flex:1"><b>${esc(it.label || it.name)}</b>${isNew ? '<span class="nw">NEW</span>' : ''}<small>${esc(it.name)}${it.sub ? ' · ' + esc(it.sub) : ''}${it.version && !/^4\.1/.test(it.version) ? ' · Spine ' + it.version + ' (미지원)' : ''}</small></div>` +
+    d.innerHTML = `${thumb}<div style="min-width:0;flex:1"><b>${esc(it.label || it.name)}</b>${isNew ? '<span class="nw">NEW</span>' : ''}${it.unavailable ? '<span class="nab">볼 수 없음</span>' : ''}<small>${esc(it.name)}${it.sub ? ' · ' + esc(it.sub) : ''}${it.version && !/^4\.1/.test(it.version) ? ' · Spine ' + it.version + ' (미지원)' : ''}</small></div>` +
       (it.group !== 'background'
         ? (onScreen(it).length ? `<button class="rm" title="화면에서 빼기">−</button>` : '') + '<button class="add" title="지금 화면에 함께 추가">＋</button>'
         : '');
@@ -1606,7 +1611,8 @@ function charCard(c){
   const box = document.createElement('div'); box.className = 'skins';
   for (const it of c.v){
     const b = document.createElement('button');
-    b.textContent = it.skin || '기본'; b.title = it.name;
+    b.textContent = (it.skin || '기본') + (it.unavailable ? ' (볼 수 없음)' : ''); b.title = it.unavailable ? NA_MSG : it.name;
+    if (it.unavailable) b.classList.add('na');
     b.setAttribute('aria-pressed', LIB.cur === it);
     if (it.added && it.added > LIB.seen) b.textContent += ' •';
     b.onclick = e => { e.stopPropagation(); libOpen(it); };
@@ -1661,6 +1667,7 @@ async function fetchItemFiles(it){
 const itemKey = it => it.group + '|' + it.cat + '|' + it.name;
 const onScreen = it => extras().filter(l => l.key === itemKey(it));
 async function libAdd(it){
+  if (it.unavailable) return setStatus('"' + (it.label || it.name) + '" — ' + NA_MSG);
   if (!skel) return libOpen(it);   // 아직 모델이 없으면 기본 모델로
   try {
     setStatus('추가하는 중… ' + (it.label || it.name));
@@ -1697,6 +1704,7 @@ function renderOnScreen(){
 const THUMB_REV = 'idle1n';   // 썸네일 만드는 방식이 바뀌면 이 값을 바꿔 브라우저 캐시를 새로 받게 함
 const spThumb = it => AB + 'assets/thumbs/spine/' + encPath(it.cat) + '/' + encodeURIComponent(it.name + '.png') + '?v=' + (it.v || 0) + '_' + THUMB_REV + (it.tv ? '_' + it.tv : '');
 // 썸네일 <img>: 아직 없으면 빈 칸으로 두었다가, 만들어지면(또는 주기적으로) 다시 시도
+const NA_MSG = '게임 업데이트로 이 모델의 atlas 가 암호화되어 아직 볼 수 없습니다. 게임 쪽에서 풀리면 자동으로 들어옵니다.';
 const tkey = it => it.cat + '|' + it.name;
 const thumbImg = it => `<img class="th-img" data-tk="${tkey(it).replace(/"/g, '&quot;')}" loading="lazy" decoding="async" src="${spThumb(it)}" alt="" onerror="this.classList.add('miss')" onload="this.classList.remove('miss')">`;
 function refreshThumb(it){
@@ -1812,6 +1820,7 @@ const bgThumb = it => it.thumb ? AB + 'assets/thumbs/' + encPath(it.cat) + '/' +
                                : itemBase(it) + encodeURIComponent(it.pngs[0]);
 async function libOpen(it){
   LIB.cur = it;
+  if (it.unavailable){ setStatus('"' + (it.label || it.name) + '" — ' + NA_MSG); libRender(); return; }
   try {
     const base = itemBase(it);
     if (it.group === 'background'){
