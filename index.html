@@ -400,7 +400,7 @@ async function loadFiles(list){
     // 버전 문제일 때만 버전 안내 (이 사이트는 Spine 4.1 런타임, 게임 데이터도 4.1)
     const hint = /Region not found/i.test(m) ? ' (이 모델의 skel 과 atlas 짝이 맞지 않습니다 — 게임 업데이트로 바뀐 모델일 수 있음)'
       : /version|Unsupported|String index|Invalid/i.test(m) ? ' (Spine 4.1 데이터가 아닐 수 있습니다)' : '';
-    setStatus('불러오기 실패: ' + m + hint);
+    setStatus('이 모델은 지금 볼 수 없습니다 — ' + m + hint);
   }
 }
 
@@ -1593,7 +1593,7 @@ function libRender(){
     const isNew = it.added && it.added > LIB.seen;
     const thumb = it.group === 'background' ? `<img loading="lazy" decoding="async" src="${bgThumb(it)}" alt="">`
       : thumbImg(it);
-    d.innerHTML = `${thumb}<div style="min-width:0;flex:1"><b>${esc(it.label || it.name)}</b>${isNew ? '<span class="nw">NEW</span>' : ''}${it.unavailable ? '<span class="nab">볼 수 없음</span>' : ''}<small>${esc(it.name)}${it.sub ? ' · ' + esc(it.sub) : ''}${it.version && !/^4\.1/.test(it.version) ? ' · Spine ' + it.version + ' (미지원)' : ''}</small></div>` +
+    d.innerHTML = `${thumb}<div style="min-width:0;flex:1"><b>${esc(it.label || it.name)}</b>${isNew ? '<span class="nw">NEW</span>' : ''}${it.unavailable ? `<span class="nab" title="${esc(naText(it))}">볼 수 없음</span>` : ''}<small>${esc(it.name)}${it.sub ? ' · ' + esc(it.sub) : ''}${it.version && !/^4\.1/.test(it.version) ? ' · Spine ' + it.version + ' (미지원)' : ''}</small></div>` +
       (it.group !== 'background'
         ? (onScreen(it).length ? `<button class="rm" title="화면에서 빼기">−</button>` : '') + '<button class="add" title="지금 화면에 함께 추가">＋</button>'
         : '');
@@ -1611,7 +1611,7 @@ function charCard(c){
   const box = document.createElement('div'); box.className = 'skins';
   for (const it of c.v){
     const b = document.createElement('button');
-    b.textContent = (it.skin || '기본') + (it.unavailable ? ' (볼 수 없음)' : ''); b.title = it.unavailable ? NA_MSG : it.name;
+    b.textContent = (it.skin || '기본') + (it.unavailable ? ' (볼 수 없음)' : ''); b.title = it.unavailable ? naText(it) : it.name;
     if (it.unavailable) b.classList.add('na');
     b.setAttribute('aria-pressed', LIB.cur === it);
     if (it.added && it.added > LIB.seen) b.textContent += ' •';
@@ -1667,7 +1667,7 @@ async function fetchItemFiles(it){
 const itemKey = it => it.group + '|' + it.cat + '|' + it.name;
 const onScreen = it => extras().filter(l => l.key === itemKey(it));
 async function libAdd(it){
-  if (it.unavailable) return setStatus('"' + (it.label || it.name) + '" — ' + NA_MSG);
+  if (it.unavailable) return setStatus('"' + (it.label || it.name) + '" — ' + naText(it));
   if (!skel) return libOpen(it);   // 아직 모델이 없으면 기본 모델로
   try {
     setStatus('추가하는 중… ' + (it.label || it.name));
@@ -1705,6 +1705,8 @@ const THUMB_REV = 'idle1n';   // 썸네일 만드는 방식이 바뀌면 이 값
 const spThumb = it => AB + 'assets/thumbs/spine/' + encPath(it.cat) + '/' + encodeURIComponent(it.name + '.png') + '?v=' + (it.v || 0) + '_' + THUMB_REV + (it.tv ? '_' + it.tv : '');
 // 썸네일 <img>: 아직 없으면 빈 칸으로 두었다가, 만들어지면(또는 주기적으로) 다시 시도
 const NA_MSG = '게임 업데이트로 이 모델의 atlas 가 암호화되어 아직 볼 수 없습니다. 게임 쪽에서 풀리면 자동으로 들어옵니다.';
+// 볼 수 없는 이유 문구
+const naText = it => it.reason && it.reason !== 'atlas 암호화' ? '지금은 볼 수 없는 모델입니다 (' + it.reason + ').' : NA_MSG;
 const tkey = it => it.cat + '|' + it.name;
 const thumbImg = it => `<img class="th-img" data-tk="${tkey(it).replace(/"/g, '&quot;')}" loading="lazy" decoding="async" src="${spThumb(it)}" alt="" onerror="this.classList.add('miss')" onload="this.classList.remove('miss')">`;
 function refreshThumb(it){
@@ -1820,7 +1822,7 @@ const bgThumb = it => it.thumb ? AB + 'assets/thumbs/' + encPath(it.cat) + '/' +
                                : itemBase(it) + encodeURIComponent(it.pngs[0]);
 async function libOpen(it){
   LIB.cur = it;
-  if (it.unavailable){ setStatus('"' + (it.label || it.name) + '" — ' + NA_MSG); libRender(); return; }
+  if (it.unavailable){ setStatus('"' + (it.label || it.name) + '" — ' + naText(it)); libRender(); return; }
   try {
     const base = itemBase(it);
     if (it.group === 'background'){
@@ -1833,7 +1835,7 @@ async function libOpen(it){
     await loadFiles(await fetchItemFiles(it));
     $('#title').textContent = it.label || it.name;
     modelL().name = it.label || it.name; renderList();
-  } catch (e) { setStatus('라이브러리 로드 실패: ' + e.message); }
+  } catch (e) { setStatus('"' + (it.label || it.name) + '" — 지금은 볼 수 없는 모델입니다 (파일을 받지 못함: ' + e.message + ')'); }
   libRender();
 }
 $('#bgClose').onclick = () => $('#bgPrev').classList.remove('on');
